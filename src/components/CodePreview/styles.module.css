@@ -1,0 +1,131 @@
+/* ライブラリ版の同スタイル */
+.codePreviewContainer {
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+}
+
+.header {
+    padding: 0.75rem 1rem;
+    background: #f6f8fa;
+    border-bottom: 1px solid #d0d7de;
+}
+
+.title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #57606a;
+    display: flex;
+    align-items: center;
+}
+
+.title::before {
+    content: "🔍";
+    margin-right: 0.5rem;
+    font-size: 1em;
+}
+
+.splitLayout {
+    display: flex;
+    flex-direction: column;
+    min-height: 300px;
+    height: auto;
+}
+
+.editorsRow {
+    display: flex;
+    border-bottom: 1px solid #d0d7de;
+}
+
+.editorSection {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #d0d7de;
+    min-width: 200px;
+    overflow: hidden;
+    height: 100%;
+    flex-shrink: 0;
+}
+
+.editorSection:last-child {
+    border-right: none;
+}
+
+.previewSection {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 100%;
+    height: 100%;
+}
+
+.sectionHeader {
+    padding: 0.5rem 1rem;
+    background: #f6f8fa;
+    border-bottom: 1px solid #d0d7de;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #57606a;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.editorContainer {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+.previewContainer {
+    position: relative;
+    background: white;
+    padding: 0;
+    overflow: hidden;
+    flex: 1;
+    min-height: var(--min-height, 200px);
+}
+
+.preview {
+    width: 100%;
+    min-height: var(--min-height, 200px);
+    border: none;
+    background: white;
+    display: block;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .splitLayout {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .editorsRow {
+        flex-direction: column;
+    }
+
+    .editorSection {
+        border-right: none;
+        border-bottom: 1px solid #d0d7de;
+        height: auto;
+        width: 100% !important;
+        flex-shrink: 1;
+    }
+
+    .editorSection:last-child {
+        border-bottom: none;
+    }
+
+    .previewSection {
+        height: auto;
+        border-top: 1px solid #d0d7de;
+    }
+}
