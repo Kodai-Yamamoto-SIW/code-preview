@@ -71,7 +71,7 @@
     font-size: 0.8rem;
     font-weight: 600;
     color: #57606a;
-    text-transform: uppercase;
+    text-transform: none;
     letter-spacing: 0.5px;
     flex-shrink: 0;
 }

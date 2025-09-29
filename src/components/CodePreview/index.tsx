@@ -5,6 +5,7 @@ import styles from './styles.module.css';
 export interface CodePreviewProps {
     initialHTML?: string;
     initialCSS?: string;
+    initialJS?: string;
     title?: string;
     minHeight?: string;
     imageBasePath?: string;
@@ -18,6 +19,7 @@ export interface CodePreviewProps {
 export default function CodePreview({
     initialHTML = '',
     initialCSS,
+    initialJS,
     title = '',
     minHeight = '200px',
     imageBasePath,
@@ -33,11 +35,12 @@ export default function CodePreview({
 
     const [htmlCode, setHtmlCode] = useState(ensureTrailingNewline(initialHTML));
     const [cssCode, setCssCode] = useState(ensureTrailingNewline(initialCSS || ''));
+    const [jsCode, setJsCode] = useState(ensureTrailingNewline(initialJS || ''));
     const [editorHeight, setEditorHeight] = useState(minHeight);
     const [previewHeight, setPreviewHeight] = useState(minHeight);
 
     // 各セクションの幅を管理するstate
-    const [sectionWidths, setSectionWidths] = useState<{ html: number; css: number }>({ html: 50, css: 50 });
+    const [sectionWidths, setSectionWidths] = useState<{ html: number; css: number; js: number }>({ html: 50, css: 50, js: 0 });
 
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -45,9 +48,11 @@ export default function CodePreview({
     // エディタの参照を保持
     const htmlEditorRef = useRef<any>(null);
     const cssEditorRef = useRef<any>(null);
+    const jsEditorRef = useRef<any>(null);
 
-    // CSSエディタを表示するかどうかを判定
+    // 各エディタを表示するかどうかを判定
     const showCSSEditor = initialCSS !== undefined;
+    const showJSEditor = initialJS !== undefined;
 
     // エディタの実際のコンテンツ幅を取得する関数
     const getEditorScrollWidth = (editorRef: React.RefObject<any>): number => {
@@ -86,49 +91,63 @@ export default function CodePreview({
     };
 
     // エディタセクションの最適な幅を計算する関数（プレビューは下段に配置）
-    const calculateOptimalWidths = (): { html: number; css: number } => {
+    const calculateOptimalWidths = (): { html: number; css: number; js: number } => {
         const container = containerRef.current;
         if (!container) {
-            return showCSSEditor ? { html: 50, css: 50 } : { html: 100, css: 0 };
+            if (showCSSEditor && showJSEditor) return { html: 34, css: 33, js: 33 };
+            if (showCSSEditor) return { html: 50, css: 50, js: 0 };
+            if (showJSEditor) return { html: 50, css: 0, js: 50 };
+            return { html: 100, css: 0, js: 0 };
         }
 
-        if (!showCSSEditor) {
-            return { html: 100, css: 0 };
-        }
-
+        const editors: Array<{ key: 'html' | 'css' | 'js'; needed: number }> = [];
+        const minEditorWidth = 200;
         const containerWidth = container.offsetWidth || 800; // フォールバック値
 
-        const minEditorWidth = 200;
         const htmlNeededWidth = Math.max(getEditorScrollWidth(htmlEditorRef), minEditorWidth);
-        const cssNeededWidth = Math.max(getEditorScrollWidth(cssEditorRef), minEditorWidth);
+        editors.push({ key: 'html', needed: htmlNeededWidth });
 
-        const totalNeededWidth = htmlNeededWidth + cssNeededWidth;
+        if (showCSSEditor) {
+            const cssNeededWidth = Math.max(getEditorScrollWidth(cssEditorRef), minEditorWidth);
+            editors.push({ key: 'css', needed: cssNeededWidth });
+        }
+
+        if (showJSEditor) {
+            const jsNeededWidth = Math.max(getEditorScrollWidth(jsEditorRef), minEditorWidth);
+            editors.push({ key: 'js', needed: jsNeededWidth });
+        }
+
+        const totalNeededWidth = editors.reduce((sum, e) => sum + e.needed, 0);
 
         if (totalNeededWidth > containerWidth) {
-            const remainingWidth = containerWidth - minEditorWidth * 2;
+            const remainingWidth = containerWidth - minEditorWidth * editors.length;
 
             if (remainingWidth <= 0) {
-                return { html: 50, css: 50 };
+                if (editors.length === 3) return { html: 34, css: 33, js: 33 };
+                if (editors.length === 2) {
+                    if (showCSSEditor) return { html: 50, css: 50, js: 0 };
+                    return { html: 50, css: 0, js: 50 };
+                }
+                return { html: 100, css: 0, js: 0 };
             }
 
-            const htmlRatio = htmlNeededWidth / totalNeededWidth;
-            const cssRatio = cssNeededWidth / totalNeededWidth;
-
-            const htmlWidth = minEditorWidth + remainingWidth * htmlRatio;
-            const cssWidth = minEditorWidth + remainingWidth * cssRatio;
+            const widthsPx: Record<'html' | 'css' | 'js', number> = { html: 0, css: 0, js: 0 };
+            editors.forEach(e => {
+                const ratio = e.needed / totalNeededWidth;
+                widthsPx[e.key] = minEditorWidth + remainingWidth * ratio;
+            });
 
             return {
-                html: (htmlWidth / containerWidth) * 100,
-                css: (cssWidth / containerWidth) * 100,
+                html: (widthsPx.html / containerWidth) * 100,
+                css: (widthsPx.css / containerWidth) * 100,
+                js: (widthsPx.js / containerWidth) * 100,
             };
         } else {
-            const htmlRatio = htmlNeededWidth / totalNeededWidth;
-            const cssRatio = cssNeededWidth / totalNeededWidth;
-
-            return {
-                html: htmlRatio * 100,
-                css: cssRatio * 100,
-            };
+            const widths: Record<'html' | 'css' | 'js', number> = { html: 0, css: 0, js: 0 };
+            editors.forEach(e => {
+                widths[e.key] = (e.needed / totalNeededWidth) * 100;
+            });
+            return widths;
         }
     };
 
@@ -150,8 +169,9 @@ export default function CodePreview({
 
         const htmlEditorHeight = calculateEditorHeightByCode(htmlCode);
         const cssEditorHeight = showCSSEditor ? calculateEditorHeightByCode(cssCode) : 0;
+        const jsEditorHeight = showJSEditor ? calculateEditorHeightByCode(jsCode) : 0;
 
-        const maxEditorHeight = Math.max(htmlEditorHeight, cssEditorHeight);
+        const maxEditorHeight = Math.max(htmlEditorHeight, cssEditorHeight, jsEditorHeight);
         const finalEditorHeight = Math.max(maxEditorHeight, parseInt(minHeight));
         const limitedEditorHeight = Math.min(finalEditorHeight, 600);
 
@@ -233,7 +253,7 @@ export default function CodePreview({
     useEffect(() => {
         updateEditorHeight();
         updatePreviewHeight();
-    }, [htmlCode, cssCode, minHeight]);
+    }, [htmlCode, cssCode, jsCode, minHeight]);
 
     // HTML末尾改行保証
     useEffect(() => {
@@ -264,6 +284,21 @@ export default function CodePreview({
             }
         }
     }, [cssCode]);
+
+    // JS末尾改行保証
+    useEffect(() => {
+        if (jsCode && !jsCode.endsWith('\n')) {
+            const newValue = jsCode + '\n';
+            setJsCode(newValue);
+
+            if (jsEditorRef.current) {
+                const editor = jsEditorRef.current;
+                const position = editor.getPosition();
+                editor.setValue(newValue);
+                if (position) editor.setPosition(position);
+            }
+        }
+    }, [jsCode]);
 
     // 画像パスを変換する関数（相対パスにベースパスを前置）
     const processImagePaths = (code: string): string => {
@@ -297,10 +332,19 @@ export default function CodePreview({
     const generatePreviewDocument = (): string => {
         const processedHtml = processHtmlCode(htmlCode);
         const styleTag = showCSSEditor && cssCode ? `<style>\n${cssCode}\n</style>` : '';
+        const scriptTag = showJSEditor && jsCode ? `<script>\n${jsCode}\n<\/script>` : '';
 
         if (processedHtml.includes('<!DOCTYPE') || processedHtml.includes('<html')) {
-            if (styleTag) return processedHtml.replace(/<\/head>/, `${styleTag}\n</head>`);
-            return processedHtml;
+            let doc = processedHtml;
+            if (styleTag) doc = doc.replace(/<\/head>/, `${styleTag}\n</head>`);
+            if (scriptTag) {
+                if (/<\/body>/.test(doc)) {
+                    doc = doc.replace(/<\/body>/, `${scriptTag}\n</body>`);
+                } else {
+                    doc += `\n${scriptTag}`;
+                }
+            }
+            return doc;
         }
 
         return `<!DOCTYPE html>
@@ -313,12 +357,14 @@ export default function CodePreview({
 </head>
 <body>
   ${processedHtml}
+  ${scriptTag}
 </body>
 </html>`;
     };
 
     const handleHtmlChange = (value: string | undefined) => setHtmlCode(value || '');
     const handleCssChange = (value: string | undefined) => setCssCode(value || '');
+    const handleJsChange = (value: string | undefined) => setJsCode(value || '');
 
     const handleHtmlEditorDidMount = (editor: any) => {
         htmlEditorRef.current = editor;
@@ -328,6 +374,12 @@ export default function CodePreview({
 
     const handleCssEditorDidMount = (editor: any) => {
         cssEditorRef.current = editor;
+        setTimeout(updateSectionWidths, 100);
+        editor.onDidChangeModelContent(() => setTimeout(updateSectionWidths, 50));
+    };
+
+    const handleJsEditorDidMount = (editor: any) => {
+        jsEditorRef.current = editor;
         setTimeout(updateSectionWidths, 100);
         editor.onDidChangeModelContent(() => setTimeout(updateSectionWidths, 50));
     };
@@ -383,6 +435,35 @@ export default function CodePreview({
                                     value={cssCode}
                                     onChange={handleCssChange}
                                     onMount={handleCssEditorDidMount}
+                                    theme={editorTheme}
+                                    options={{
+                                        minimap: { enabled: false },
+                                        fontSize: 14,
+                                        lineNumbers: 'off',
+                                        folding: false,
+                                        padding: { top: 5, bottom: 5 },
+                                        roundedSelection: false,
+                                        wordWrap: 'off',
+                                        tabSize: 2,
+                                        insertSpaces: true,
+                                        scrollBeyondLastLine: false,
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* JSエディタ（JSが定義されている場合のみ） */}
+                    {showJSEditor && (
+                        <div className={styles.editorSection} style={{ width: `${sectionWidths.js}%` }}>
+                            <div className={styles.sectionHeader}>JavaScript</div>
+                            <div className={styles.editorContainer}>
+                                <Editor
+                                    height={editorHeight}
+                                    defaultLanguage="javascript"
+                                    value={jsCode}
+                                    onChange={handleJsChange}
+                                    onMount={handleJsEditorDidMount}
                                     theme={editorTheme}
                                     options={{
                                         minimap: { enabled: false },
