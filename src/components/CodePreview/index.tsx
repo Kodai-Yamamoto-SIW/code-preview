@@ -17,7 +17,7 @@ export interface CodePreviewProps {
 }
 
 export default function CodePreview({
-    initialHTML = '',
+    initialHTML,
     initialCSS,
     initialJS,
     title = '',
@@ -33,7 +33,7 @@ export default function CodePreview({
         return code;
     };
 
-    const [htmlCode, setHtmlCode] = useState(ensureTrailingNewline(initialHTML));
+    const [htmlCode, setHtmlCode] = useState(ensureTrailingNewline(initialHTML || ''));
     const [cssCode, setCssCode] = useState(ensureTrailingNewline(initialCSS || ''));
     const [jsCode, setJsCode] = useState(ensureTrailingNewline(initialJS || ''));
     const [editorHeight, setEditorHeight] = useState(minHeight);
@@ -51,6 +51,7 @@ export default function CodePreview({
     const jsEditorRef = useRef<any>(null);
 
     // 各エディタを表示するかどうかを判定
+    const showHTMLEditor = initialHTML !== undefined;
     const showCSSEditor = initialCSS !== undefined;
     const showJSEditor = initialJS !== undefined;
 
@@ -104,8 +105,10 @@ export default function CodePreview({
         const minEditorWidth = 200;
         const containerWidth = container.offsetWidth || 800; // フォールバック値
 
-        const htmlNeededWidth = Math.max(getEditorScrollWidth(htmlEditorRef), minEditorWidth);
-        editors.push({ key: 'html', needed: htmlNeededWidth });
+        if (showHTMLEditor) {
+            const htmlNeededWidth = Math.max(getEditorScrollWidth(htmlEditorRef), minEditorWidth);
+            editors.push({ key: 'html', needed: htmlNeededWidth });
+        }
 
         if (showCSSEditor) {
             const cssNeededWidth = Math.max(getEditorScrollWidth(cssEditorRef), minEditorWidth);
@@ -125,8 +128,11 @@ export default function CodePreview({
             if (remainingWidth <= 0) {
                 if (editors.length === 3) return { html: 34, css: 33, js: 33 };
                 if (editors.length === 2) {
-                    if (showCSSEditor) return { html: 50, css: 50, js: 0 };
-                    return { html: 50, css: 0, js: 50 };
+                    // 2つのときは均等
+                    if (showHTMLEditor && showCSSEditor) return { html: 50, css: 50, js: 0 };
+                    if (showHTMLEditor && showJSEditor) return { html: 50, css: 0, js: 50 };
+                    // CSS + JS
+                    return { html: 0, css: 50, js: 50 };
                 }
                 return { html: 100, css: 0, js: 0 };
             }
@@ -167,7 +173,7 @@ export default function CodePreview({
             return Math.max(lines * lineHeight + padding, parseInt(minHeight));
         };
 
-        const htmlEditorHeight = calculateEditorHeightByCode(htmlCode);
+        const htmlEditorHeight = showHTMLEditor ? calculateEditorHeightByCode(htmlCode) : 0;
         const cssEditorHeight = showCSSEditor ? calculateEditorHeightByCode(cssCode) : 0;
         const jsEditorHeight = showJSEditor ? calculateEditorHeightByCode(jsCode) : 0;
 
@@ -257,6 +263,7 @@ export default function CodePreview({
 
     // HTML末尾改行保証
     useEffect(() => {
+        if (!showHTMLEditor) return;
         if (htmlCode && !htmlCode.endsWith('\n')) {
             const newValue = htmlCode + '\n';
             setHtmlCode(newValue);
@@ -268,7 +275,7 @@ export default function CodePreview({
                 if (position) editor.setPosition(position);
             }
         }
-    }, [htmlCode]);
+    }, [htmlCode, showHTMLEditor]);
 
     // CSS末尾改行保証
     useEffect(() => {
@@ -397,32 +404,34 @@ export default function CodePreview({
             <div className={styles.splitLayout} ref={containerRef}>
                 {/* エディタセクション（上段） */}
                 <div className={styles.editorsRow}>
-                    {/* HTMLエディタ */}
-                    <div className={styles.editorSection} style={{ width: `${sectionWidths.html}%` }}>
-                        <div className={styles.sectionHeader}>HTML</div>
-                        <div className={styles.editorContainer}>
-                            <Editor
-                                height={editorHeight}
-                                defaultLanguage="html"
-                                value={htmlCode}
-                                onChange={handleHtmlChange}
-                                onMount={handleHtmlEditorDidMount}
-                                theme={editorTheme}
-                                options={{
-                                    minimap: { enabled: false },
-                                    fontSize: 14,
-                                    lineNumbers: 'off',
-                                    folding: false,
-                                    padding: { top: 5, bottom: 5 },
-                                    roundedSelection: false,
-                                    wordWrap: 'off',
-                                    tabSize: 2,
-                                    insertSpaces: true,
-                                    scrollBeyondLastLine: false,
-                                }}
-                            />
+                    {/* HTMLエディタ（HTMLが定義されている場合のみ） */}
+                    {showHTMLEditor && (
+                        <div className={styles.editorSection} style={{ width: `${sectionWidths.html}%` }}>
+                            <div className={styles.sectionHeader}>HTML</div>
+                            <div className={styles.editorContainer}>
+                                <Editor
+                                    height={editorHeight}
+                                    defaultLanguage="html"
+                                    value={htmlCode}
+                                    onChange={handleHtmlChange}
+                                    onMount={handleHtmlEditorDidMount}
+                                    theme={editorTheme}
+                                    options={{
+                                        minimap: { enabled: false },
+                                        fontSize: 14,
+                                        lineNumbers: 'off',
+                                        folding: false,
+                                        padding: { top: 5, bottom: 5 },
+                                        roundedSelection: false,
+                                        wordWrap: 'off',
+                                        tabSize: 2,
+                                        insertSpaces: true,
+                                        scrollBeyondLastLine: false,
+                                    }}
+                                />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* CSSエディタ（CSSが定義されている場合のみ） */}
                     {showCSSEditor && (
