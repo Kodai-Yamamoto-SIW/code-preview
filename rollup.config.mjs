@@ -15,7 +15,10 @@ export default {
         resolve(),
         commonjs(),
         postcss({
-            extract: 'styles.css',
+            // ビルド時に CSS を別ファイルに抽出せず、JS に注入しておくことで、
+            // 利用側が単にコンポーネントを import するだけでスタイルが適用されるようにします。
+            // (必要に応じて再度 extract に戻すか、分離した styles.css を公開する選択肢も残せます)
+            inject: true,
             modules: {
                 // CSS Modulesを有効化
                 generateScopedName: '[name]__[local]__[hash:base64:5]'
