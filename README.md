@@ -22,7 +22,7 @@ import '@kodai-yamamoto-siw/code-preview/styles.css';
 export default function Sample() {
   return (
     <CodePreview 
-      initialCode="<p>こんにちは</p>"
+      initialHTML="<p>こんにちは</p>"
       initialCSS="p { color: red; }"
       title="サンプル"
       theme="light"
@@ -31,7 +31,7 @@ export default function Sample() {
 }
 ```
 
-- initialCode: HTMLのbody部分だけを入れてください（<!DOCTYPE>や<html>は不要）
+- initialHTML: HTMLのbody部分だけを入れてください（<!DOCTYPE>や<html>は不要）
 - initialCSS: CSSを入れるとCSSエディタが表示されます
 - imageBasePath: 画像を相対パスで読みたいときのベースパス
 - theme: 'light' | 'dark'

@@ -3,7 +3,7 @@ import Editor from '@monaco-editor/react';
 import styles from './styles.module.css';
 
 export interface CodePreviewProps {
-    initialCode?: string;
+    initialHTML?: string;
     initialCSS?: string;
     title?: string;
     minHeight?: string;
@@ -16,7 +16,7 @@ export interface CodePreviewProps {
 }
 
 export default function CodePreview({
-    initialCode = '',
+    initialHTML = '',
     initialCSS,
     title = '',
     minHeight = '200px',
@@ -31,7 +31,7 @@ export default function CodePreview({
         return code;
     };
 
-    const [htmlCode, setHtmlCode] = useState(ensureTrailingNewline(initialCode));
+    const [htmlCode, setHtmlCode] = useState(ensureTrailingNewline(initialHTML));
     const [cssCode, setCssCode] = useState(ensureTrailingNewline(initialCSS || ''));
     const [editorHeight, setEditorHeight] = useState(minHeight);
     const [previewHeight, setPreviewHeight] = useState(minHeight);
