@@ -34,18 +34,18 @@
         "@monaco-editor/react": "^4.7.0"
     },
     "devDependencies": {
-        "typescript": "~5.6.2",
-        "rollup": "^4.21.2",
-        "@rollup/plugin-node-resolve": "^15.3.0",
-        "@rollup/plugin-commonjs": "^25.0.8",
-        "@rollup/plugin-typescript": "^12.1.2",
+        "typescript": "~5.9.2",
+        "rollup": "^4.52.3",
+        "@rollup/plugin-node-resolve": "^16.0.1",
+        "@rollup/plugin-commonjs": "^28.0.6",
+        "@rollup/plugin-typescript": "^12.1.4",
         "rollup-plugin-postcss": "^4.0.2",
-        "postcss": "^8.4.47",
-        "autoprefixer": "^10.4.20",
-        "tslib": "^2.7.0",
+        "postcss": "^8.5.6",
+        "autoprefixer": "^10.4.21",
+        "tslib": "^2.8.1",
         "rimraf": "^6.0.1",
-        "@types/react": "^18.2.28",
-        "@types/react-dom": "^18.2.8"
+        "@types/react": "^19.1.16",
+        "@types/react-dom": "^19.1.9"
     },
     "license": "MIT",
     "repository": {
