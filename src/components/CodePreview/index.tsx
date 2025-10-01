@@ -39,6 +39,7 @@ export default function CodePreview({
     const [editorHeight, setEditorHeight] = useState(minHeight);
     const [previewHeight, setPreviewHeight] = useState(minHeight);
     const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
+    const [showLineNumbers, setShowLineNumbers] = useState(false);
 
     // 各セクションの幅を管理するstate
     const [sectionWidths, setSectionWidths] = useState<{ html: number; css: number; js: number }>({ html: 50, css: 50, js: 0 });
@@ -227,6 +228,10 @@ export default function CodePreview({
         setTimeout(() => {
             calculatePreviewHeight();
         }, 100);
+    };
+
+    const toggleLineNumbers = () => {
+        setShowLineNumbers(prev => !prev);
     };
 
     // リサイズ
@@ -465,15 +470,25 @@ window.eval(${JSON.stringify(`${jsCode}
 
     return (
         <div className={styles.codePreviewContainer}>
-            {title && (
+            {title ? (
                 <div className={styles.header}>
                     <h4 className={styles.title}>{title}</h4>
                 </div>
-            )}
+            ) : null}
 
             <div className={styles.splitLayout} ref={containerRef} style={splitLayoutStyle}>
                 {/* エディタセクション（上段） */}
                 <div className={styles.editorsRow} style={editorsRowStyle}>
+                    <button
+                        type="button"
+                        className={styles.gyoButton}
+                        onClick={toggleLineNumbers}
+                        aria-pressed={showLineNumbers}
+                        title={showLineNumbers ? '行番号を隠す' : '行番号を表示'}
+                    >
+                        <span aria-hidden="true">#</span>
+                        <span className={styles.hiddenText}>{showLineNumbers ? '行番号を隠す' : '行番号を表示'}</span>
+                    </button>
                     {/* HTMLエディタ（HTMLが定義されている場合のみ） */}
                     {showHTMLEditor && (
                         <div className={styles.editorSection} style={{ width: `${sectionWidths.html}%` }}>
@@ -489,7 +504,7 @@ window.eval(${JSON.stringify(`${jsCode}
                                     options={{
                                         minimap: { enabled: false },
                                         fontSize: 14,
-                                        lineNumbers: 'off',
+                                        lineNumbers: showLineNumbers ? 'on' : 'off',
                                         folding: false,
                                         padding: { top: 5, bottom: 5 },
                                         roundedSelection: false,
@@ -518,7 +533,7 @@ window.eval(${JSON.stringify(`${jsCode}
                                     options={{
                                         minimap: { enabled: false },
                                         fontSize: 14,
-                                        lineNumbers: 'off',
+                                        lineNumbers: showLineNumbers ? 'on' : 'off',
                                         folding: false,
                                         padding: { top: 5, bottom: 5 },
                                         roundedSelection: false,
@@ -547,7 +562,7 @@ window.eval(${JSON.stringify(`${jsCode}
                                     options={{
                                         minimap: { enabled: false },
                                         fontSize: 14,
-                                        lineNumbers: 'off',
+                                        lineNumbers: showLineNumbers ? 'on' : 'off',
                                         folding: false,
                                         padding: { top: 5, bottom: 5 },
                                         roundedSelection: false,
