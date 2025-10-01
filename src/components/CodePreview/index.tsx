@@ -368,31 +368,119 @@ export default function CodePreview({
                         ? `<script>
 (function() {
     if (!window.parent) return;
-                    const originalLog = console.log.bind(console);
-                    const logs = [];
-                    console.log = function(...args) {
-                        try {
-                            const formatted = args.map(arg => {
-                                try {
-                                    if (typeof arg === 'object') {
-                                        return JSON.stringify(arg);
-                                    }
-                                    return String(arg);
-                                } catch (error) {
-                                    return String(arg);
-                                }
-                            }).join(' ');
-                            logs.push(formatted);
-                            window.parent.postMessage({ type: 'codePreviewConsoleLog', messages: logs.slice() }, '*');
-                        } catch (error) {
-                            // noop
-                        }
-                        return originalLog(...args);
-                    };
-                })();
-                </script>`
+
+    const originalLog = console.log.bind(console);
+    const originalError = typeof console.error === 'function' ? console.error.bind(console) : null;
+    const logs = [];
+
+    const postLogs = function() {
+        try {
+            window.parent.postMessage({ type: 'codePreviewConsoleLog', messages: logs.slice() }, '*');
+        } catch (error) {
+            // noop
+        }
+    };
+
+    const extractStackLocation = function(stack) {
+        if (!stack) return '';
+        try {
+            const stackText = String(stack);
+            const jsMatch = stackText.match(/(code-preview-js\.js:\d+:\d+)/);
+            if (jsMatch && jsMatch[1]) {
+                return ' (' + jsMatch[1] + ')';
+            }
+            const htmlMatch = stackText.match(/(about:srcdoc:\d+:\d+)/);
+            if (htmlMatch && htmlMatch[1]) {
+                return ' (' + htmlMatch[1] + ')';
+            }
+        } catch (patternError) {
+            // noop
+        }
+        return '';
+    };
+
+    const toMessage = function(value) {
+        try {
+            if (value instanceof Error) {
+                const location = extractStackLocation(value.stack);
+                const message = value.message || String(value);
+                return location ? message + location : message;
+            }
+            if (typeof value === 'string') return value;
+            if (typeof value === 'object') {
+                try {
+                    return JSON.stringify(value);
+                } catch (jsonError) {
+                    return String(value);
+                }
+            }
+            return String(value);
+        } catch (messageError) {
+            return String(value);
+        }
+    };
+
+    const combineArgs = function(args) {
+        if (!args || !args.length) return '';
+        try {
+            return args.map(toMessage).join(' ');
+        } catch (argsError) {
+            return '';
+        }
+    };
+
+    const pushLog = function(message) {
+        logs.push(message);
+        postLogs();
+    };
+
+    console.log = function(...args) {
+        const message = combineArgs(args);
+        pushLog(message);
+        return originalLog.apply(console, args);
+    };
+
+    if (originalError) {
+        console.error = function(...args) {
+            const message = combineArgs(args);
+            pushLog('[エラー] ' + message);
+            return originalError.apply(console, args);
+        };
+    }
+
+    window.addEventListener('error', function(event) {
+        const message = event.message || '不明なエラー';
+        const location = extractStackLocation(event.error && event.error.stack) || (event.filename ? ' (' + event.filename + ':' + (event.lineno || 0) + ':' + (event.colno || 0) + ')' : '');
+        pushLog('[エラー] ' + message + location);
+    });
+
+    window.addEventListener('unhandledrejection', function(event) {
+        const reason = event.reason;
+        let message = '';
+        let location = '';
+        if (reason instanceof Error) {
+            message = reason.message || String(reason);
+            location = extractStackLocation(reason.stack);
+        } else if (typeof reason === 'object') {
+            try {
+                message = JSON.stringify(reason);
+            } catch (jsonError) {
+                message = String(reason);
+            }
+        } else {
+            message = String(reason);
+        }
+        pushLog('[エラー] Promise: ' + message + (location || ''));
+    });
+})();
+</script>`
                         : '';
-                const scriptTag = showJSEditor && jsCode ? `<script>\n${jsCode}\n<\/script>` : '';
+                const scriptTag = showJSEditor && jsCode
+                        ? `<script>
+window.eval(${JSON.stringify(`${jsCode}
+//# sourceURL=code-preview-js.js`)});
+<\/script>`
+                        : '';
 
         if (processedHtml.includes('<!DOCTYPE') || processedHtml.includes('<html')) {
             let doc = processedHtml;
