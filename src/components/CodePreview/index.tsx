@@ -56,8 +56,7 @@ export default function CodePreview({
     const showCSSEditor = initialCSS !== undefined;
     const showJSEditor = initialJS !== undefined;
     const showPreview = showHTMLEditor;
-    const hasConsoleLog = jsCode.includes('console.log');
-    const showConsole = showJSEditor && hasConsoleLog;
+    const showConsole = consoleLogs.length > 0;
 
     // エディタの実際のコンテンツ幅を取得する関数
     const getEditorScrollWidth = (editorRef: React.RefObject<any>): number => {
@@ -270,10 +269,8 @@ export default function CodePreview({
     }, [htmlCode, cssCode, jsCode, minHeight, showPreview]);
 
     useEffect(() => {
-        if (!hasConsoleLog) {
-            setConsoleLogs([]);
-        }
-    }, [hasConsoleLog]);
+        setConsoleLogs([]);
+    }, [jsCode, htmlCode]);
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
@@ -367,7 +364,7 @@ export default function CodePreview({
     const generatePreviewDocument = (): string => {
         const processedHtml = processHtmlCode(htmlCode);
                         const styleTag = showCSSEditor && cssCode ? `<style>\n${cssCode}\n</style>` : '';
-                        const consoleScriptTag = showJSEditor
+                        const consoleScriptTag = (showHTMLEditor || showJSEditor)
                         ? `<script>
 (function() {
     if (!window.parent) return;
@@ -399,8 +396,16 @@ export default function CodePreview({
 
         if (processedHtml.includes('<!DOCTYPE') || processedHtml.includes('<html')) {
             let doc = processedHtml;
-            if (styleTag) doc = doc.replace(/<\/head>/, `${styleTag}\n</head>`);
-            if (consoleScriptTag) doc = doc.replace(/<\/head>/, `${consoleScriptTag}\n</head>`);
+            const headInjection = [consoleScriptTag, styleTag].filter(Boolean).join('\n');
+            if (headInjection) {
+                if (/<head[^>]*>/i.test(doc)) {
+                    doc = doc.replace(/<head([^>]*)>/i, `<head$1>\n${headInjection}\n`);
+                } else if (/<html[^>]*>/i.test(doc)) {
+                    doc = doc.replace(/<html([^>]*)>/i, `<html$1>\n<head>\n${headInjection}\n</head>\n`);
+                } else {
+                    doc = `${headInjection}\n${doc}`;
+                }
+            }
             if (scriptTag) {
                 if (/<\/body>/.test(doc)) {
                     doc = doc.replace(/<\/body>/, `${scriptTag}\n</body>`);
