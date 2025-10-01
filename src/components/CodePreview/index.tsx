@@ -365,115 +365,7 @@ export default function CodePreview({
         const processedHtml = processHtmlCode(htmlCode);
                         const styleTag = showCSSEditor && cssCode ? `<style>\n${cssCode}\n</style>` : '';
                         const consoleScriptTag = (showHTMLEditor || showJSEditor)
-                        ? `<script>
-(function() {
-    if (!window.parent) return;
-
-    const originalLog = console.log.bind(console);
-    const originalError = typeof console.error === 'function' ? console.error.bind(console) : null;
-    const logs = [];
-
-    const postLogs = function() {
-        try {
-            window.parent.postMessage({ type: 'codePreviewConsoleLog', messages: logs.slice() }, '*');
-        } catch (error) {
-            // noop
-        }
-    };
-
-    const extractStackLocation = function(stack) {
-        if (!stack) return '';
-        try {
-            const stackText = String(stack);
-            const jsMatch = stackText.match(/(code-preview-js\.js:\d+:\d+)/);
-            if (jsMatch && jsMatch[1]) {
-                return ' (' + jsMatch[1] + ')';
-            }
-            const htmlMatch = stackText.match(/(about:srcdoc:\d+:\d+)/);
-            if (htmlMatch && htmlMatch[1]) {
-                return ' (' + htmlMatch[1] + ')';
-            }
-        } catch (patternError) {
-            // noop
-        }
-        return '';
-    };
-
-    const toMessage = function(value) {
-        try {
-            if (value instanceof Error) {
-                const location = extractStackLocation(value.stack);
-                const message = value.message || String(value);
-                return location ? message + location : message;
-            }
-            if (typeof value === 'string') return value;
-            if (typeof value === 'object') {
-                try {
-                    return JSON.stringify(value);
-                } catch (jsonError) {
-                    return String(value);
-                }
-            }
-            return String(value);
-        } catch (messageError) {
-            return String(value);
-        }
-    };
-
-    const combineArgs = function(args) {
-        if (!args || !args.length) return '';
-        try {
-            return args.map(toMessage).join(' ');
-        } catch (argsError) {
-            return '';
-        }
-    };
-
-    const pushLog = function(message) {
-        logs.push(message);
-        postLogs();
-    };
-
-    console.log = function(...args) {
-        const message = combineArgs(args);
-        pushLog(message);
-        return originalLog.apply(console, args);
-    };
-
-    if (originalError) {
-        console.error = function(...args) {
-            const message = combineArgs(args);
-            pushLog('[エラー] ' + message);
-            return originalError.apply(console, args);
-        };
-    }
-
-    window.addEventListener('error', function(event) {
-        const message = event.message || '不明なエラー';
-        const location = extractStackLocation(event.error && event.error.stack) || (event.filename ? ' (' + event.filename + ':' + (event.lineno || 0) + ':' + (event.colno || 0) + ')' : '');
-        pushLog('[エラー] ' + message + location);
-    });
-
-    window.addEventListener('unhandledrejection', function(event) {
-        const reason = event.reason;
-        let message = '';
-        let location = '';
-        if (reason instanceof Error) {
-            message = reason.message || String(reason);
-            location = extractStackLocation(reason.stack);
-        } else if (typeof reason === 'object') {
-            try {
-                message = JSON.stringify(reason);
-            } catch (jsonError) {
-                message = String(reason);
-            }
-        } else {
-            message = String(reason);
-        }
-        pushLog('[エラー] Promise: ' + message + (location || ''));
-    });
-})();
-</script>`
+                        ? `<script>!function(){if(!window.parent)return;const logs=[];const postLogs=()=>{try{window.parent.postMessage({type:'codePreviewConsoleLog',messages:logs.slice()},'*');}catch(e){}};const extractStackLocation=stack=>{if(!stack)return'';try{const text=String(stack);const jsMatch=text.match(/(code-preview-js\.js:\d+:\d+)/);if(jsMatch&&jsMatch[1])return' ('+jsMatch[1]+')';const htmlMatch=text.match(/(about:srcdoc:\d+:\d+)/);if(htmlMatch&&htmlMatch[1])return' ('+htmlMatch[1]+')';}catch(err){}return'';};const toMessage=value=>{try{if(value instanceof Error){const location=extractStackLocation(value.stack);const message=value.message||String(value);return location?message+location:message;}if(typeof value==='string')return value;if(typeof value==='object'){try{return JSON.stringify(value);}catch(jsonErr){return String(value);}}return String(value);}catch(err){return String(value);}};const combineArgs=args=>{if(!args||!args.length)return'';try{return args.map(toMessage).join(' ');}catch(err){return'';}};const pushLog=message=>{logs.push(message);postLogs();};const originalLog=console.log.bind(console);console.log=(...args)=>{const message=combineArgs(args);pushLog(message);return originalLog.apply(console,args);};const originalError=typeof console.error==='function'?console.error.bind(console):null;if(originalError){console.error=(...args)=>{const message=combineArgs(args);pushLog('[エラー] '+message);return originalError.apply(console,args);};}window.addEventListener('error',event=>{const message=event.message||'不明なエラー';const location=extractStackLocation(event.error&&event.error.stack)||(event.filename?' ('+event.filename+':' + (event.lineno||0)+':' + (event.colno||0)+')':'');pushLog('[エラー] '+message+location);});window.addEventListener('unhandledrejection',event=>{const reason=event.reason;let message='';let location='';if(reason instanceof Error){message=reason.message||String(reason);location=extractStackLocation(reason.stack);}else if(typeof reason==='object'){try{message=JSON.stringify(reason);}catch(jsonErr){message=String(reason);}}else{message=String(reason);}pushLog('[エラー] Promise: '+message+(location||''));});}();<\/script>`
                         : '';
                 const scriptTag = showJSEditor && jsCode
                         ? `<script>
@@ -484,14 +376,22 @@ window.eval(${JSON.stringify(`${jsCode}
 
         if (processedHtml.includes('<!DOCTYPE') || processedHtml.includes('<html')) {
             let doc = processedHtml;
-            const headInjection = [consoleScriptTag, styleTag].filter(Boolean).join('\n');
-            if (headInjection) {
+            if (consoleScriptTag) {
                 if (/<head[^>]*>/i.test(doc)) {
-                    doc = doc.replace(/<head([^>]*)>/i, `<head$1>\n${headInjection}\n`);
+                    doc = doc.replace(/<head([^>]*)>/i, `<head$1>${consoleScriptTag}`);
                 } else if (/<html[^>]*>/i.test(doc)) {
-                    doc = doc.replace(/<html([^>]*)>/i, `<html$1>\n<head>\n${headInjection}\n</head>\n`);
+                    doc = doc.replace(/<html([^>]*)>/i, `<html$1><head>${consoleScriptTag}</head>`);
                 } else {
-                    doc = `${headInjection}\n${doc}`;
+                    doc = `${consoleScriptTag}${doc}`;
+                }
+            }
+            if (styleTag) {
+                if (/<head[^>]*>/i.test(doc)) {
+                    doc = doc.replace(/<\/head>/i, `${styleTag}</head>`);
+                } else if (/<html[^>]*>/i.test(doc)) {
+                    doc = doc.replace(/<html([^>]*)>/i, `<html$1><head>${styleTag}</head>`);
+                } else {
+                    doc = `${styleTag}${doc}`;
                 }
             }
             if (scriptTag) {
