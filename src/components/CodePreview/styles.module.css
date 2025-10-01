@@ -64,6 +64,14 @@
     height: 100%;
 }
 
+.consoleSection {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 100%;
+    border-top: 1px solid #d0d7de;
+}
+
 .sectionHeader {
     padding: 0.5rem 1rem;
     background: #f6f8fa;
@@ -100,6 +108,39 @@
     background: white;
     display: block;
     overflow: hidden;
+}
+
+.consoleContainer {
+    background: #0d1117;
+    color: #f0f6fc;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    padding: 0.75rem 1rem;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow-x: auto;
+}
+
+.consoleLine {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.consoleBullet {
+    color: #58a6ff;
+    flex: 0 0 auto;
+    font-size: 0.8rem;
+    margin-top: 0.2rem;
+}
+
+.consolePlaceholder {
+    font-size: 0.8rem;
+    color: rgba(240, 246, 252, 0.65);
 }
 
 @media (max-width: 768px) {

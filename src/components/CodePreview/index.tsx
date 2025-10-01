@@ -38,6 +38,7 @@ export default function CodePreview({
     const [jsCode, setJsCode] = useState(ensureTrailingNewline(initialJS || ''));
     const [editorHeight, setEditorHeight] = useState(minHeight);
     const [previewHeight, setPreviewHeight] = useState(minHeight);
+    const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
 
     // 各セクションの幅を管理するstate
     const [sectionWidths, setSectionWidths] = useState<{ html: number; css: number; js: number }>({ html: 50, css: 50, js: 0 });
@@ -55,6 +56,8 @@ export default function CodePreview({
     const showCSSEditor = initialCSS !== undefined;
     const showJSEditor = initialJS !== undefined;
     const showPreview = showHTMLEditor;
+    const hasConsoleLog = jsCode.includes('console.log');
+    const showConsole = showJSEditor && hasConsoleLog;
 
     // エディタの実際のコンテンツ幅を取得する関数
     const getEditorScrollWidth = (editorRef: React.RefObject<any>): number => {
@@ -266,6 +269,26 @@ export default function CodePreview({
         }
     }, [htmlCode, cssCode, jsCode, minHeight, showPreview]);
 
+    useEffect(() => {
+        if (!hasConsoleLog) {
+            setConsoleLogs([]);
+        }
+    }, [hasConsoleLog]);
+
+    useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+            if (event.source !== iframeRef.current?.contentWindow) return;
+            const data = event.data;
+            if (!data || typeof data !== 'object') return;
+            if (data.type === 'codePreviewConsoleLog' && Array.isArray(data.messages)) {
+                setConsoleLogs(data.messages);
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, []);
+
     // HTML末尾改行保証
     useEffect(() => {
         if (!showHTMLEditor) return;
@@ -343,12 +366,41 @@ export default function CodePreview({
     // iframeへ渡すHTML
     const generatePreviewDocument = (): string => {
         const processedHtml = processHtmlCode(htmlCode);
-        const styleTag = showCSSEditor && cssCode ? `<style>\n${cssCode}\n</style>` : '';
-        const scriptTag = showJSEditor && jsCode ? `<script>\n${jsCode}\n<\/script>` : '';
+                        const styleTag = showCSSEditor && cssCode ? `<style>\n${cssCode}\n</style>` : '';
+                        const consoleScriptTag = showJSEditor
+                        ? `<script>
+(function() {
+    if (!window.parent) return;
+                    const originalLog = console.log.bind(console);
+                    const logs = [];
+                    console.log = function(...args) {
+                        try {
+                            const formatted = args.map(arg => {
+                                try {
+                                    if (typeof arg === 'object') {
+                                        return JSON.stringify(arg);
+                                    }
+                                    return String(arg);
+                                } catch (error) {
+                                    return String(arg);
+                                }
+                            }).join(' ');
+                            logs.push(formatted);
+                            window.parent.postMessage({ type: 'codePreviewConsoleLog', messages: logs.slice() }, '*');
+                        } catch (error) {
+                            // noop
+                        }
+                        return originalLog(...args);
+                    };
+                })();
+                </script>`
+                        : '';
+                const scriptTag = showJSEditor && jsCode ? `<script>\n${jsCode}\n<\/script>` : '';
 
         if (processedHtml.includes('<!DOCTYPE') || processedHtml.includes('<html')) {
             let doc = processedHtml;
             if (styleTag) doc = doc.replace(/<\/head>/, `${styleTag}\n</head>`);
+            if (consoleScriptTag) doc = doc.replace(/<\/head>/, `${consoleScriptTag}\n</head>`);
             if (scriptTag) {
                 if (/<\/body>/.test(doc)) {
                     doc = doc.replace(/<\/body>/, `${scriptTag}\n</body>`);
@@ -365,7 +417,8 @@ export default function CodePreview({
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>プレビュー</title>
-  ${styleTag}
+    ${styleTag}
+    ${consoleScriptTag}
 </head>
 <body>
   ${processedHtml}
@@ -399,7 +452,23 @@ export default function CodePreview({
     const editorTheme = theme === 'dark' ? 'vs-dark' : 'light';
 
     const splitLayoutStyle: React.CSSProperties | undefined = showPreview ? undefined : { minHeight: 'auto' };
-    const editorsRowStyle: React.CSSProperties | undefined = showPreview ? undefined : { borderBottom: 'none' };
+    const editorsRowStyle: React.CSSProperties | undefined = showPreview || showConsole ? undefined : { borderBottom: 'none' };
+
+    const renderPreviewIframe = (visible: boolean): React.ReactElement => (
+        <iframe
+            key={visible ? 'code-preview-visible' : 'code-preview-hidden'}
+            ref={iframeRef}
+            srcDoc={generatePreviewDocument()}
+            className={visible ? styles.preview : undefined}
+            title="HTML+CSS Preview"
+            sandbox="allow-scripts allow-same-origin"
+            style={
+                visible
+                    ? ({ height: previewHeight, '--min-height': minHeight } as React.CSSProperties)
+                    : ({ display: 'none' } as React.CSSProperties)
+            }
+        />
+    );
 
     return (
         <div className={styles.codePreviewContainer}>
@@ -501,18 +570,30 @@ export default function CodePreview({
                 </div>
 
                 {/* プレビュー（下段） */}
-                {showPreview && (
+                {showPreview ? (
                     <div className={styles.previewSection}>
                         <div className={styles.sectionHeader}>プレビュー</div>
                         <div className={styles.previewContainer} style={{ '--min-height': minHeight } as React.CSSProperties}>
-                            <iframe
-                                ref={iframeRef}
-                                srcDoc={generatePreviewDocument()}
-                                className={styles.preview}
-                                title="HTML+CSS Preview"
-                                sandbox="allow-scripts allow-same-origin"
-                                style={{ height: previewHeight, '--min-height': minHeight } as React.CSSProperties}
-                            />
+                            {renderPreviewIframe(true)}
+                        </div>
+                    </div>
+                ) : (
+                    showJSEditor && <div style={{ display: 'none' }}>{renderPreviewIframe(false)}</div>
+                )}
+                {showConsole && (
+                    <div className={styles.consoleSection}>
+                        <div className={styles.sectionHeader}>コンソール</div>
+                        <div className={styles.consoleContainer}>
+                            {consoleLogs.length === 0 ? (
+                                <div className={styles.consolePlaceholder}>ここに console.log の結果が表示されます</div>
+                            ) : (
+                                consoleLogs.map((log, index) => (
+                                    <div key={index} className={styles.consoleLine}>
+                                        <span className={styles.consoleBullet}>▶</span>
+                                        <span>{log}</span>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 )}
