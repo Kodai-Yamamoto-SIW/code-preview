@@ -54,6 +54,7 @@ export default function CodePreview({
     const showHTMLEditor = initialHTML !== undefined;
     const showCSSEditor = initialCSS !== undefined;
     const showJSEditor = initialJS !== undefined;
+    const showPreview = showHTMLEditor;
 
     // エディタの実際のコンテンツ幅を取得する関数
     const getEditorScrollWidth = (editorRef: React.RefObject<any>): number => {
@@ -220,6 +221,7 @@ export default function CodePreview({
     };
 
     const updatePreviewHeight = () => {
+        if (!showPreview) return;
         setTimeout(() => {
             calculatePreviewHeight();
         }, 100);
@@ -239,6 +241,7 @@ export default function CodePreview({
 
     // 初回プレビュー高さ調整
     useEffect(() => {
+        if (!showPreview) return;
         const iframe = iframeRef.current;
         if (iframe) {
             const handleLoad = () => {
@@ -253,13 +256,15 @@ export default function CodePreview({
             }
             return () => iframe.removeEventListener('load', handleLoad);
         }
-    }, []);
+    }, [showPreview]);
 
     // コード変更時の高さ調整
     useEffect(() => {
         updateEditorHeight();
-        updatePreviewHeight();
-    }, [htmlCode, cssCode, jsCode, minHeight]);
+        if (showPreview) {
+            updatePreviewHeight();
+        }
+    }, [htmlCode, cssCode, jsCode, minHeight, showPreview]);
 
     // HTML末尾改行保証
     useEffect(() => {
@@ -393,6 +398,9 @@ export default function CodePreview({
 
     const editorTheme = theme === 'dark' ? 'vs-dark' : 'light';
 
+    const splitLayoutStyle: React.CSSProperties | undefined = showPreview ? undefined : { minHeight: 'auto' };
+    const editorsRowStyle: React.CSSProperties | undefined = showPreview ? undefined : { borderBottom: 'none' };
+
     return (
         <div className={styles.codePreviewContainer}>
             {title && (
@@ -401,9 +409,9 @@ export default function CodePreview({
                 </div>
             )}
 
-            <div className={styles.splitLayout} ref={containerRef}>
+            <div className={styles.splitLayout} ref={containerRef} style={splitLayoutStyle}>
                 {/* エディタセクション（上段） */}
-                <div className={styles.editorsRow}>
+                <div className={styles.editorsRow} style={editorsRowStyle}>
                     {/* HTMLエディタ（HTMLが定義されている場合のみ） */}
                     {showHTMLEditor && (
                         <div className={styles.editorSection} style={{ width: `${sectionWidths.html}%` }}>
@@ -493,19 +501,21 @@ export default function CodePreview({
                 </div>
 
                 {/* プレビュー（下段） */}
-                <div className={styles.previewSection}>
-                    <div className={styles.sectionHeader}>プレビュー</div>
-                    <div className={styles.previewContainer} style={{ '--min-height': minHeight } as React.CSSProperties}>
-                        <iframe
-                            ref={iframeRef}
-                            srcDoc={generatePreviewDocument()}
-                            className={styles.preview}
-                            title="HTML+CSS Preview"
-                            sandbox="allow-scripts allow-same-origin"
-                            style={{ height: previewHeight, '--min-height': minHeight } as React.CSSProperties}
-                        />
+                {showPreview && (
+                    <div className={styles.previewSection}>
+                        <div className={styles.sectionHeader}>プレビュー</div>
+                        <div className={styles.previewContainer} style={{ '--min-height': minHeight } as React.CSSProperties}>
+                            <iframe
+                                ref={iframeRef}
+                                srcDoc={generatePreviewDocument()}
+                                className={styles.preview}
+                                title="HTML+CSS Preview"
+                                sandbox="allow-scripts allow-same-origin"
+                                style={{ height: previewHeight, '--min-height': minHeight } as React.CSSProperties}
+                            />
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );
