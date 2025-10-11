@@ -5,6 +5,18 @@ import styles from './styles.module.css';
 // sourceIdごとの初期コードを保存するグローバルストア
 const sourceCodeStore = new Map<string, { html: string; css: string; js: string }>();
 
+// ストア更新を購読するリスナー
+type StoreListener = () => void;
+const storeListeners = new Map<string, Set<StoreListener>>();
+
+// ストア更新を通知する関数
+const notifyStoreUpdate = (sourceId: string) => {
+    const listeners = storeListeners.get(sourceId);
+    if (listeners) {
+        listeners.forEach(listener => listener());
+    }
+};
+
 export interface CodePreviewProps {
     initialHTML?: string;
     initialCSS?: string;
@@ -76,21 +88,16 @@ export default function CodePreview({
     let resolvedCSS = initialCSS;
     let resolvedJS = initialJS;
 
-    if (sourceId) {
+    // このインスタンスがソース提供者かどうか（initialが1つでも指定されている）
+    const isSourceProvider = sourceId && (initialHTML !== undefined || initialCSS !== undefined || initialJS !== undefined);
+
+    if (sourceId && !isSourceProvider) {
+        // ソース提供者でない場合は、ストアからコードを取得
         const stored = sourceCodeStore.get(sourceId);
         if (stored) {
-            // 既に登録済みの場合は、ストアのコードを使用
-            // 空文字列の場合はundefinedとして扱う（エディタ非表示のため）
             resolvedHTML = resolvedHTML ?? (stored.html || undefined);
             resolvedCSS = resolvedCSS ?? (stored.css || undefined);
             resolvedJS = resolvedJS ?? (stored.js || undefined);
-        } else {
-            // 初めての場合は、このインスタンスのコードをストアに登録
-            sourceCodeStore.set(sourceId, {
-                html: initialHTML || '',
-                css: initialCSS || '',
-                js: initialJS || '',
-            });
         }
     }
 
@@ -125,6 +132,51 @@ export default function CodePreview({
     const cssEditorRef = useRef<any>(null);
     const jsEditorRef = useRef<any>(null);
 
+    // ストア更新の購読（ソース提供者でない場合のみ）
+    useEffect(() => {
+        if (!sourceId || isSourceProvider) return;
+
+        // 初回マウント時にストアから値を取得
+        const stored = sourceCodeStore.get(sourceId);
+        if (stored) {
+            if (initialHTML === undefined && stored.html) {
+                setHtmlCode(ensureTrailingNewline(stored.html));
+            }
+            if (initialCSS === undefined && stored.css) {
+                setCssCode(ensureTrailingNewline(stored.css));
+            }
+            if (initialJS === undefined && stored.js) {
+                setJsCode(ensureTrailingNewline(stored.js));
+            }
+        }
+
+        const listener = () => {
+            const stored = sourceCodeStore.get(sourceId);
+            if (stored) {
+                // ストアから最新の値を取得してstateを更新
+                // initialで明示的に指定されていないもののみ更新
+                if (initialHTML === undefined && stored.html) {
+                    setHtmlCode(ensureTrailingNewline(stored.html));
+                }
+                if (initialCSS === undefined && stored.css) {
+                    setCssCode(ensureTrailingNewline(stored.css));
+                }
+                if (initialJS === undefined && stored.js) {
+                    setJsCode(ensureTrailingNewline(stored.js));
+                }
+            }
+        };
+
+        if (!storeListeners.has(sourceId)) {
+            storeListeners.set(sourceId, new Set());
+        }
+        storeListeners.get(sourceId)!.add(listener);
+
+        return () => {
+            storeListeners.get(sourceId)?.delete(listener);
+        };
+    }, [sourceId, isSourceProvider]);
+
     const resolveVisibility = (autoVisible: boolean, override?: boolean): boolean => {
         if (typeof override === 'boolean') {
             return override;
@@ -139,6 +191,19 @@ export default function CodePreview({
     const showJSEditor = resolveVisibility(resolvedJS !== undefined, jsVisible);
     const showPreview = resolveVisibility(showHTMLEditor, previewVisible);
     const showConsole = resolveVisibility(consoleLogs.length > 0, consoleVisible);
+
+    // ソース提供者の場合、initialが変更されたらストアを更新
+    useEffect(() => {
+        if (sourceId && isSourceProvider) {
+            sourceCodeStore.set(sourceId, {
+                html: initialHTML || '',
+                css: initialCSS || '',
+                js: initialJS || '',
+            });
+            // 他のインスタンスに通知
+            notifyStoreUpdate(sourceId);
+        }
+    }, [sourceId, isSourceProvider, initialHTML, initialCSS, initialJS]);
 
     // エディタの実際のコンテンツ幅を取得する関数
     const getEditorScrollWidth = (editorRef: React.RefObject<any>): number => {
