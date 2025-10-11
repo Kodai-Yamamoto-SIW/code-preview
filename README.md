@@ -37,6 +37,9 @@ export default function Sample() {
 - initialJS: JavaScript を入れると JS エディタが表示され、プレビューに `<script>` として挿入されます
 - imageBasePath: 画像を相対パスで読みたいときのベースパス
 - theme: 'light' | 'dark'
+- htmlVisible / cssVisible / jsVisible: true または false を渡すと、それぞれのエディタ表示を強制的に切り替えられます（省略時は自動判定）
+- previewVisible: プレビュー領域の表示/非表示を制御できます（省略時は HTML エディタの状態に追従）
+- consoleVisible: コンソール領域の表示/非表示を制御できます（true の場合はログが無くても表示されます）
 
 メモ:
 - `initialJS` はプレビュー内の `<script>` として実行されます。プレビュー用途のため、エラー処理や型チェックは行いません。

@@ -14,6 +14,11 @@ export interface CodePreviewProps {
      * 省略時は 'light'
      */
     theme?: 'light' | 'dark';
+    htmlVisible?: boolean;
+    cssVisible?: boolean;
+    jsVisible?: boolean;
+    previewVisible?: boolean;
+    consoleVisible?: boolean;
 }
 
 type EditorKey = 'html' | 'css' | 'js';
@@ -50,6 +55,11 @@ export default function CodePreview({
     minHeight = '200px',
     imageBasePath,
     theme = 'light',
+    htmlVisible,
+    cssVisible,
+    jsVisible,
+    previewVisible,
+    consoleVisible,
 }: CodePreviewProps): React.ReactElement {
     // 末尾に改行を追加する関数
     const ensureTrailingNewline = (code: string): string => {
@@ -82,12 +92,19 @@ export default function CodePreview({
     const cssEditorRef = useRef<any>(null);
     const jsEditorRef = useRef<any>(null);
 
+    const resolveVisibility = (autoVisible: boolean, override?: boolean): boolean => {
+        if (typeof override === 'boolean') {
+            return override;
+        }
+        return autoVisible;
+    };
+
     // 各エディタを表示するかどうかを判定
-    const showHTMLEditor = initialHTML !== undefined;
-    const showCSSEditor = initialCSS !== undefined;
-    const showJSEditor = initialJS !== undefined;
-    const showPreview = showHTMLEditor;
-    const showConsole = consoleLogs.length > 0;
+    const showHTMLEditor = resolveVisibility(initialHTML !== undefined, htmlVisible);
+    const showCSSEditor = resolveVisibility(initialCSS !== undefined, cssVisible);
+    const showJSEditor = resolveVisibility(initialJS !== undefined, jsVisible);
+    const showPreview = resolveVisibility(showHTMLEditor, previewVisible);
+    const showConsole = resolveVisibility(consoleLogs.length > 0, consoleVisible);
 
     // エディタの実際のコンテンツ幅を取得する関数
     const getEditorScrollWidth = (editorRef: React.RefObject<any>): number => {
@@ -599,9 +616,9 @@ export default function CodePreview({
     // iframeへ渡すHTML
     const generatePreviewDocument = (): string => {
         const processedHtml = processHtmlCode(htmlCode);
-                        const styleTag = showCSSEditor && cssCode ? `<style>\n${cssCode}\n</style>` : '';
-                                                const consoleScriptTag = (showHTMLEditor || showJSEditor)
-                                                                        ? `<script data-code-preview-internal="true">
+        const styleTag = cssCode ? `<style>\n${cssCode}\n</style>` : '';
+        const consoleScriptTag = (showPreview || showConsole || showHTMLEditor || showJSEditor)
+            ? `<script data-code-preview-internal="true">
 (function () {
     if (!window.parent) return;
     const logs = [];
@@ -830,9 +847,9 @@ export default function CodePreview({
         removeInternalScripts(document);
 })();
 <\/script>`
-                                                : '';
-                                const scriptTag = showJSEditor && jsCode
-                                                ? `<script data-code-preview-internal="true">
+            : '';
+        const scriptTag = jsCode
+            ? `<script data-code-preview-internal="true">
 (function () {
     const currentScript = document.currentScript;
                     if (currentScript && currentScript.parentNode) {
@@ -848,7 +865,7 @@ export default function CodePreview({
     }
 })();
 <\/script>`
-                                                : '';
+            : '';
 
         if (processedHtml.includes('<!DOCTYPE') || processedHtml.includes('<html')) {
             let doc = processedHtml;
@@ -1054,7 +1071,9 @@ export default function CodePreview({
                         </div>
                     </div>
                 ) : (
-                    showJSEditor && <div style={{ display: 'none' }}>{renderPreviewIframe(false)}</div>
+                    (showHTMLEditor || showCSSEditor || showJSEditor || showConsole) && (
+                        <div style={{ display: 'none' }}>{renderPreviewIframe(false)}</div>
+                    )
                 )}
                 {showConsole && (
                     <div className={styles.consoleSection}>
