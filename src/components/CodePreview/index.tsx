@@ -369,15 +369,255 @@ export default function CodePreview({
     const generatePreviewDocument = (): string => {
         const processedHtml = processHtmlCode(htmlCode);
                         const styleTag = showCSSEditor && cssCode ? `<style>\n${cssCode}\n</style>` : '';
-                        const consoleScriptTag = (showHTMLEditor || showJSEditor)
-                        ? `<script>!function(){if(!window.parent)return;const logs=[];const postLogs=()=>{try{window.parent.postMessage({type:'codePreviewConsoleLog',messages:logs.slice()},'*');}catch(e){}};const extractStackLocation=stack=>{if(!stack)return'';try{const text=String(stack);const jsMatch=text.match(/(code-preview-js\.js:\d+:\d+)/);if(jsMatch&&jsMatch[1])return' ('+jsMatch[1]+')';const htmlMatch=text.match(/(about:srcdoc:\d+:\d+)/);if(htmlMatch&&htmlMatch[1])return' ('+htmlMatch[1]+')';}catch(err){}return'';};const toMessage=value=>{try{if(value instanceof Error){const location=extractStackLocation(value.stack);const message=value.message||String(value);return location?message+location:message;}if(typeof value==='string')return value;if(typeof value==='object'){try{return JSON.stringify(value);}catch(jsonErr){return String(value);}}return String(value);}catch(err){return String(value);}};const combineArgs=args=>{if(!args||!args.length)return'';try{return args.map(toMessage).join(' ');}catch(err){return'';}};const pushLog=message=>{logs.push(message);postLogs();};const originalLog=console.log.bind(console);console.log=(...args)=>{const message=combineArgs(args);pushLog(message);return originalLog.apply(console,args);};const originalError=typeof console.error==='function'?console.error.bind(console):null;if(originalError){console.error=(...args)=>{const message=combineArgs(args);pushLog('[エラー] '+message);return originalError.apply(console,args);};}window.addEventListener('error',event=>{const message=event.message||'不明なエラー';const location=extractStackLocation(event.error&&event.error.stack)||(event.filename?' ('+event.filename+':' + (event.lineno||0)+':' + (event.colno||0)+')':'');pushLog('[エラー] '+message+location);});window.addEventListener('unhandledrejection',event=>{const reason=event.reason;let message='';let location='';if(reason instanceof Error){message=reason.message||String(reason);location=extractStackLocation(reason.stack);}else if(typeof reason==='object'){try{message=JSON.stringify(reason);}catch(jsonErr){message=String(reason);}}else{message=String(reason);}pushLog('[エラー] Promise: '+message+(location||''));});}();<\/script>`
-                        : '';
-                const scriptTag = showJSEditor && jsCode
-                        ? `<script>
-window.eval(${JSON.stringify(`${jsCode}
-//# sourceURL=code-preview-js.js`)});
+                                                const consoleScriptTag = (showHTMLEditor || showJSEditor)
+                                                                        ? `<script data-code-preview-internal="true">
+(function () {
+    if (!window.parent) return;
+    const logs = [];
+    const MAX_HTML_LENGTH = 300;
+                            const INTERNAL_SCRIPT_SELECTOR = 'script[data-code-preview-internal]';
+
+                            const currentScript = document.currentScript;
+
+                            const removeInternalScripts = root => {
+                                if (!root || typeof root.querySelectorAll !== 'function') return;
+                                try {
+                                    const scripts = root.querySelectorAll(INTERNAL_SCRIPT_SELECTOR);
+                                    for (let index = 0; index < scripts.length; index++) {
+                                        const script = scripts[index];
+                                        if (!script || script === currentScript) continue;
+                                        if (script.parentNode) {
+                                            script.parentNode.removeChild(script);
+                                        }
+                                    }
+                                } catch (error) {
+                                    // noop
+                                }
+                            };
+
+                            const removeCurrentScript = () => {
+                                if (currentScript && currentScript.parentNode) {
+                                    currentScript.parentNode.removeChild(currentScript);
+                                }
+                            };
+
+                            removeInternalScripts(document);
+                            removeCurrentScript();
+
+    const postLogs = () => {
+        try {
+            window.parent.postMessage({ type: 'codePreviewConsoleLog', messages: logs.slice() }, '*');
+        } catch (error) {
+            // noop
+        }
+    };
+
+    const extractStackLocation = stack => {
+        if (!stack) return '';
+        try {
+            const text = String(stack);
+            const jsMatch = text.match(/(code-preview-js\.js:\d+:\d+)/);
+            if (jsMatch && jsMatch[1]) return ' (' + jsMatch[1] + ')';
+            const htmlMatch = text.match(/(about:srcdoc:\d+:\d+)/);
+            if (htmlMatch && htmlMatch[1]) return ' (' + htmlMatch[1] + ')';
+        } catch (error) {
+            // noop
+        }
+        return '';
+    };
+
+    const truncate = text => {
+        if (typeof text !== 'string') return text;
+        if (text.length <= MAX_HTML_LENGTH) return text;
+        return text.slice(0, MAX_HTML_LENGTH) + '…';
+    };
+
+    const describeElement = element => {
+        try {
+            const tag = element.tagName ? element.tagName.toLowerCase() : 'element';
+            const id = element.id ? '#' + element.id : '';
+            let classInfo = '';
+            if (element.className && typeof element.className === 'string' && element.className.trim()) {
+                classInfo = '.' + element.className.trim().split(/\s+/).join('.');
+            }
+            const summary = '<' + tag + id + classInfo + '>';
+            const outer = element.outerHTML;
+            if (outer) return truncate(outer);
+            return summary;
+        } catch (error) {
+            return '<要素>';
+        }
+    };
+
+    const describeNode = node => {
+        if (node === null) return 'null';
+        if (node === undefined) return 'undefined';
+
+        if (typeof Node !== 'undefined' && node instanceof Node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const textContent = node.textContent || '';
+                return 'テキスト("' + truncate(textContent.trim()) + '")';
+            }
+
+            if (node.nodeType === Node.COMMENT_NODE) {
+                return '<!-- ' + truncate(node.textContent || '') + ' -->';
+            }
+
+            if (typeof Element !== 'undefined' && node instanceof Element) {
+                return describeElement(node);
+            }
+
+            if (typeof Document !== 'undefined' && node instanceof Document) {
+                const html = node.documentElement ? node.documentElement.outerHTML || '' : '';
+                return html ? truncate(html) : 'ドキュメント';
+            }
+
+            if (typeof DocumentFragment !== 'undefined' && node instanceof DocumentFragment) {
+                return 'ドキュメントフラグメント';
+            }
+        }
+
+        return String(node);
+    };
+
+    const describeCollection = collection => {
+        try {
+            return Array.from(collection).map(describeNode).join(', ');
+        } catch (error) {
+            return String(collection);
+        }
+    };
+
+    const toMessage = value => {
+        try {
+            if (value instanceof Error) {
+                const location = extractStackLocation(value.stack);
+                const message = value.message || String(value);
+                return location ? message + location : message;
+            }
+
+            if (typeof Node !== 'undefined' && value instanceof Node) {
+                return describeNode(value);
+            }
+
+            if (typeof NodeList !== 'undefined' && value instanceof NodeList) {
+                return '[' + describeCollection(value) + ']';
+            }
+
+            if (typeof HTMLCollection !== 'undefined' && value instanceof HTMLCollection) {
+                return '[' + describeCollection(value) + ']';
+            }
+
+            if (Array.isArray(value)) {
+                return '[' + value.map(toMessage).join(', ') + ']';
+            }
+
+            if (typeof value === 'string') {
+                return value;
+            }
+
+            if (typeof value === 'object' && value !== null) {
+                const seen = new WeakSet();
+                return JSON.stringify(
+                    value,
+                    (key, innerValue) => {
+                        if (typeof innerValue === 'object' && innerValue !== null) {
+                            if (seen.has(innerValue)) return '[循環参照]';
+                            seen.add(innerValue);
+                        }
+                        return innerValue;
+                    },
+                    2
+                );
+            }
+
+            return String(value);
+        } catch (error) {
+            return String(value);
+        }
+    };
+
+    const combineArgs = args => {
+        if (!args || !args.length) return '';
+        try {
+            return args.map(toMessage).join(' ');
+        } catch (error) {
+            return '';
+        }
+    };
+
+    const pushLog = message => {
+        logs.push(message);
+        postLogs();
+    };
+
+    const originalLog = console.log.bind(console);
+    console.log = (...args) => {
+        const message = combineArgs(args);
+        pushLog(message);
+        return originalLog.apply(console, args);
+    };
+
+    const originalError = typeof console.error === 'function' ? console.error.bind(console) : null;
+    if (originalError) {
+        console.error = (...args) => {
+            const message = combineArgs(args);
+            pushLog('[エラー] ' + message);
+            return originalError.apply(console, args);
+        };
+    }
+
+    window.addEventListener('error', event => {
+        const message = event.message || '不明なエラー';
+        const location =
+            extractStackLocation(event.error && event.error.stack) ||
+            (event.filename ? ' (' + event.filename + ':' + (event.lineno || 0) + ':' + (event.colno || 0) + ')' : '');
+        pushLog('[エラー] ' + message + location);
+    });
+
+    window.addEventListener('unhandledrejection', event => {
+        const reason = event.reason;
+        let message = '';
+        let location = '';
+
+        if (reason instanceof Error) {
+            message = reason.message || String(reason);
+            location = extractStackLocation(reason.stack);
+        } else if (typeof reason === 'object' && reason !== null) {
+            try {
+                message = JSON.stringify(reason);
+            } catch (error) {
+                message = String(reason);
+            }
+        } else {
+            message = String(reason);
+        }
+
+        pushLog('[エラー] Promise: ' + message + (location || ''));
+    });
+
+        removeInternalScripts(document);
+})();
 <\/script>`
-                        : '';
+                                                : '';
+                                const scriptTag = showJSEditor && jsCode
+                                                ? `<script data-code-preview-internal="true">
+(function () {
+    const currentScript = document.currentScript;
+                    if (currentScript && currentScript.parentNode) {
+                        currentScript.parentNode.removeChild(currentScript);
+                    }
+                    try {
+                        window.eval(${JSON.stringify(`${jsCode}
+                //# sourceURL=code-preview-js.js`)});
+                    } finally {
+                        if (currentScript && currentScript.parentNode) {
+                            currentScript.parentNode.removeChild(currentScript);
+                        }
+    }
+})();
+<\/script>`
+                                                : '';
 
         if (processedHtml.includes('<!DOCTYPE') || processedHtml.includes('<html')) {
             let doc = processedHtml;
