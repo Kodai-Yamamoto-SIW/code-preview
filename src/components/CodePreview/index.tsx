@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import styles from './styles.module.css';
 
+// sourceIdごとの初期コードを保存するグローバルストア
+const sourceCodeStore = new Map<string, { html: string; css: string; js: string }>();
+
 export interface CodePreviewProps {
     initialHTML?: string;
     initialCSS?: string;
@@ -19,6 +22,12 @@ export interface CodePreviewProps {
     jsVisible?: boolean;
     previewVisible?: boolean;
     consoleVisible?: boolean;
+    /**
+     * 同じコードを持つ複数の CodePreview を簡単に設置するためのID。
+     * 同じ sourceId を持つ CodePreview が複数ある場合、最初のインスタンスの
+     * initialHTML/CSS/JS が2つ目以降でも自動的に使われます。
+     */
+    sourceId?: string;
 }
 
 type EditorKey = 'html' | 'css' | 'js';
@@ -60,7 +69,31 @@ export default function CodePreview({
     jsVisible,
     previewVisible,
     consoleVisible,
+    sourceId,
 }: CodePreviewProps): React.ReactElement {
+    // sourceIdがある場合、ストアからコードを取得または登録
+    let resolvedHTML = initialHTML;
+    let resolvedCSS = initialCSS;
+    let resolvedJS = initialJS;
+
+    if (sourceId) {
+        const stored = sourceCodeStore.get(sourceId);
+        if (stored) {
+            // 既に登録済みの場合は、ストアのコードを使用
+            // 空文字列の場合はundefinedとして扱う（エディタ非表示のため）
+            resolvedHTML = resolvedHTML ?? (stored.html || undefined);
+            resolvedCSS = resolvedCSS ?? (stored.css || undefined);
+            resolvedJS = resolvedJS ?? (stored.js || undefined);
+        } else {
+            // 初めての場合は、このインスタンスのコードをストアに登録
+            sourceCodeStore.set(sourceId, {
+                html: initialHTML || '',
+                css: initialCSS || '',
+                js: initialJS || '',
+            });
+        }
+    }
+
     // 末尾に改行を追加する関数
     const ensureTrailingNewline = (code: string): string => {
         if (code && !code.endsWith('\n')) {
@@ -69,9 +102,9 @@ export default function CodePreview({
         return code;
     };
 
-    const [htmlCode, setHtmlCode] = useState(ensureTrailingNewline(initialHTML || ''));
-    const [cssCode, setCssCode] = useState(ensureTrailingNewline(initialCSS || ''));
-    const [jsCode, setJsCode] = useState(ensureTrailingNewline(initialJS || ''));
+    const [htmlCode, setHtmlCode] = useState(ensureTrailingNewline(resolvedHTML || ''));
+    const [cssCode, setCssCode] = useState(ensureTrailingNewline(resolvedCSS || ''));
+    const [jsCode, setJsCode] = useState(ensureTrailingNewline(resolvedJS || ''));
     const [editorHeight, setEditorHeight] = useState(minHeight);
     const [previewHeight, setPreviewHeight] = useState(minHeight);
     const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
@@ -100,9 +133,10 @@ export default function CodePreview({
     };
 
     // 各エディタを表示するかどうかを判定
-    const showHTMLEditor = resolveVisibility(initialHTML !== undefined, htmlVisible);
-    const showCSSEditor = resolveVisibility(initialCSS !== undefined, cssVisible);
-    const showJSEditor = resolveVisibility(initialJS !== undefined, jsVisible);
+    // resolvedの値を見る（sourceIdでコードを共有する場合も考慮）
+    const showHTMLEditor = resolveVisibility(resolvedHTML !== undefined, htmlVisible);
+    const showCSSEditor = resolveVisibility(resolvedCSS !== undefined, cssVisible);
+    const showJSEditor = resolveVisibility(resolvedJS !== undefined, jsVisible);
     const showPreview = resolveVisibility(showHTMLEditor, previewVisible);
     const showConsole = resolveVisibility(consoleLogs.length > 0, consoleVisible);
 
