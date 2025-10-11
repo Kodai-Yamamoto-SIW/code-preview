@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import styles from './styles.module.css';
 
@@ -15,6 +15,32 @@ export interface CodePreviewProps {
      */
     theme?: 'light' | 'dark';
 }
+
+type EditorKey = 'html' | 'css' | 'js';
+
+type DragState = {
+    startX: number;
+    leftKey: EditorKey;
+    rightKey: EditorKey;
+    leftWidthPercent: number;
+    rightWidthPercent: number;
+    containerWidth: number;
+    restoreCursor: string;
+    restoreUserSelect: string;
+};
+
+type EditorConfig = {
+    key: EditorKey;
+    label: string;
+    language: 'html' | 'css' | 'javascript';
+    value: string;
+    onChange: (value: string | undefined) => void;
+    onMount: (editor: any) => void;
+    visible: boolean;
+};
+
+const MIN_EDITOR_WIDTH = 200;
+const KEYBOARD_STEP_PERCENT = 5;
 
 export default function CodePreview({
     initialHTML,
@@ -42,10 +68,14 @@ export default function CodePreview({
     const [showLineNumbers, setShowLineNumbers] = useState(false);
 
     // 各セクションの幅を管理するstate
-    const [sectionWidths, setSectionWidths] = useState<{ html: number; css: number; js: number }>({ html: 50, css: 50, js: 0 });
+    const [sectionWidths, setSectionWidths] = useState<Record<EditorKey, number>>({ html: 50, css: 50, js: 0 });
+    const [isResizing, setIsResizing] = useState(false);
 
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const editorsRowRef = useRef<HTMLDivElement>(null);
+    const dragStateRef = useRef<DragState | null>(null);
+    const userResizedRef = useRef(false);
 
     // エディタの参照を保持
     const htmlEditorRef = useRef<any>(null);
@@ -105,8 +135,8 @@ export default function CodePreview({
             return { html: 100, css: 0, js: 0 };
         }
 
-        const editors: Array<{ key: 'html' | 'css' | 'js'; needed: number }> = [];
-        const minEditorWidth = 200;
+    const editors: Array<{ key: EditorKey; needed: number }> = [];
+    const minEditorWidth = MIN_EDITOR_WIDTH;
         const containerWidth = container.offsetWidth || 800; // フォールバック値
 
         if (showHTMLEditor) {
@@ -141,7 +171,7 @@ export default function CodePreview({
                 return { html: 100, css: 0, js: 0 };
             }
 
-            const widthsPx: Record<'html' | 'css' | 'js', number> = { html: 0, css: 0, js: 0 };
+            const widthsPx: Record<EditorKey, number> = { html: 0, css: 0, js: 0 };
             editors.forEach(e => {
                 const ratio = e.needed / totalNeededWidth;
                 widthsPx[e.key] = minEditorWidth + remainingWidth * ratio;
@@ -153,7 +183,7 @@ export default function CodePreview({
                 js: (widthsPx.js / containerWidth) * 100,
             };
         } else {
-            const widths: Record<'html' | 'css' | 'js', number> = { html: 0, css: 0, js: 0 };
+            const widths: Record<EditorKey, number> = { html: 0, css: 0, js: 0 };
             editors.forEach(e => {
                 widths[e.key] = (e.needed / totalNeededWidth) * 100;
             });
@@ -162,7 +192,10 @@ export default function CodePreview({
     };
 
     // 幅を再計算して更新する関数
-    const updateSectionWidths = () => {
+    const updateSectionWidths = (force = false) => {
+        if (!force && userResizedRef.current) {
+            return;
+        }
         const newWidths = calculateOptimalWidths();
         setSectionWidths(newWidths);
     };
@@ -233,6 +266,204 @@ export default function CodePreview({
     const toggleLineNumbers = () => {
         setShowLineNumbers(prev => !prev);
     };
+
+    const computeNewPairPercents = (
+        containerWidth: number,
+        leftPercent: number,
+        rightPercent: number,
+        deltaPx: number
+    ): { left: number; right: number } | null => {
+        if (!containerWidth) {
+            return null;
+        }
+
+        const leftPx = (leftPercent / 100) * containerWidth;
+        const rightPx = (rightPercent / 100) * containerWidth;
+        const totalPx = leftPx + rightPx;
+
+        if (!Number.isFinite(totalPx) || totalPx <= 0) {
+            return null;
+        }
+
+        let newLeftPx = leftPx + deltaPx;
+        let newRightPx = rightPx - deltaPx;
+
+        const effectiveMin = Math.min(MIN_EDITOR_WIDTH, totalPx / 2);
+
+        if (newLeftPx < effectiveMin) {
+            newLeftPx = effectiveMin;
+            newRightPx = totalPx - newLeftPx;
+        } else if (newRightPx < effectiveMin) {
+            newRightPx = effectiveMin;
+            newLeftPx = totalPx - newRightPx;
+        }
+
+        newLeftPx = Math.max(newLeftPx, 0);
+        newRightPx = Math.max(newRightPx, 0);
+
+        const newLeftPercent = (newLeftPx / containerWidth) * 100;
+        const newRightPercent = (newRightPx / containerWidth) * 100;
+
+        return { left: newLeftPercent, right: newRightPercent };
+    };
+
+    const handlePointerMove = useCallback(
+        (event: MouseEvent) => {
+            const state = dragStateRef.current;
+            if (!state) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const deltaPx = event.clientX - state.startX;
+            if (deltaPx === 0) {
+                return;
+            }
+
+            const adjusted = computeNewPairPercents(
+                state.containerWidth,
+                state.leftWidthPercent,
+                state.rightWidthPercent,
+                deltaPx
+            );
+
+            if (!adjusted) {
+                return;
+            }
+
+            userResizedRef.current = true;
+            setSectionWidths(prev => ({
+                ...prev,
+                [state.leftKey]: adjusted.left,
+                [state.rightKey]: adjusted.right,
+            }));
+
+            dragStateRef.current = {
+                ...state,
+                startX: event.clientX,
+                leftWidthPercent: adjusted.left,
+                rightWidthPercent: adjusted.right,
+            };
+        },
+        [setSectionWidths]
+    );
+
+    const handlePointerUp = useCallback(() => {
+        window.removeEventListener('mousemove', handlePointerMove);
+        window.removeEventListener('mouseup', handlePointerUp);
+
+        const state = dragStateRef.current;
+        dragStateRef.current = null;
+
+        if (!state) {
+            return;
+        }
+
+        document.body.style.cursor = state.restoreCursor;
+        document.body.style.userSelect = state.restoreUserSelect;
+        setIsResizing(false);
+    }, [handlePointerMove]);
+
+    const handleResizeStart = (event: React.MouseEvent<HTMLDivElement>, leftKey: EditorKey, rightKey: EditorKey) => {
+        if (!editorsRowRef.current) {
+            return;
+        }
+
+        const containerWidth = editorsRowRef.current.getBoundingClientRect().width;
+        if (!containerWidth) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (dragStateRef.current) {
+            handlePointerUp();
+        }
+
+        dragStateRef.current = {
+            startX: event.clientX,
+            leftKey,
+            rightKey,
+            leftWidthPercent: sectionWidths[leftKey] ?? 0,
+            rightWidthPercent: sectionWidths[rightKey] ?? 0,
+            containerWidth,
+            restoreCursor: document.body.style.cursor,
+            restoreUserSelect: document.body.style.userSelect,
+        };
+
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'col-resize';
+        setIsResizing(true);
+
+        window.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mouseup', handlePointerUp);
+    };
+
+    const resetSectionWidthsToAuto = () => {
+        userResizedRef.current = false;
+        updateSectionWidths(true);
+    };
+
+    const handleResizerKeyDown = (
+        event: React.KeyboardEvent<HTMLDivElement>,
+        leftKey: EditorKey,
+        rightKey: EditorKey
+    ) => {
+        if (!editorsRowRef.current) {
+            return;
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            resetSectionWidthsToAuto();
+            return;
+        }
+
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+            return;
+        }
+
+        const containerWidth = editorsRowRef.current.getBoundingClientRect().width;
+        if (!containerWidth) {
+            return;
+        }
+
+        const direction = event.key === 'ArrowLeft' ? -1 : 1;
+        const deltaPx = (KEYBOARD_STEP_PERCENT / 100) * containerWidth * direction;
+
+        const adjusted = computeNewPairPercents(
+            containerWidth,
+            sectionWidths[leftKey] ?? 0,
+            sectionWidths[rightKey] ?? 0,
+            deltaPx
+        );
+
+        if (!adjusted) {
+            return;
+        }
+
+        userResizedRef.current = true;
+        setSectionWidths(prev => ({
+            ...prev,
+            [leftKey]: adjusted.left,
+            [rightKey]: adjusted.right,
+        }));
+
+        event.preventDefault();
+    };
+
+    useEffect(() => {
+        userResizedRef.current = false;
+        updateSectionWidths(true);
+    }, [showHTMLEditor, showCSSEditor, showJSEditor]);
+
+    useEffect(() => {
+        return () => {
+            handlePointerUp();
+        };
+    }, [handlePointerUp]);
 
     // リサイズ
     useEffect(() => {
@@ -689,6 +920,39 @@ export default function CodePreview({
 
     const editorTheme = theme === 'dark' ? 'vs-dark' : 'light';
 
+    const editorConfigs: EditorConfig[] = [
+        {
+            key: 'html',
+            label: 'HTML',
+            language: 'html',
+            value: htmlCode,
+            onChange: handleHtmlChange,
+            onMount: handleHtmlEditorDidMount,
+            visible: showHTMLEditor,
+        },
+        {
+            key: 'css',
+            label: 'CSS',
+            language: 'css',
+            value: cssCode,
+            onChange: handleCssChange,
+            onMount: handleCssEditorDidMount,
+            visible: showCSSEditor,
+        },
+        {
+            key: 'js',
+            label: 'JavaScript',
+            language: 'javascript',
+            value: jsCode,
+            onChange: handleJsChange,
+            onMount: handleJsEditorDidMount,
+            visible: showJSEditor,
+        },
+    ];
+
+    const visibleEditorConfigs = editorConfigs.filter(config => config.visible);
+    const editorsRowClassName = isResizing ? `${styles.editorsRow} ${styles.isResizing}` : styles.editorsRow;
+
     const splitLayoutStyle: React.CSSProperties | undefined = showPreview ? undefined : { minHeight: 'auto' };
     const editorsRowStyle: React.CSSProperties | undefined = showPreview || showConsole ? undefined : { borderBottom: 'none' };
 
@@ -718,7 +982,7 @@ export default function CodePreview({
 
             <div className={styles.splitLayout} ref={containerRef} style={splitLayoutStyle}>
                 {/* エディタセクション（上段） */}
-                <div className={styles.editorsRow} style={editorsRowStyle}>
+                <div className={editorsRowClassName} style={editorsRowStyle} ref={editorsRowRef}>
                     <button
                         type="button"
                         className={styles.gyoButton}
@@ -729,92 +993,56 @@ export default function CodePreview({
                         <span aria-hidden="true">#</span>
                         <span className={styles.hiddenText}>{showLineNumbers ? '行番号を隠す' : '行番号を表示'}</span>
                     </button>
-                    {/* HTMLエディタ（HTMLが定義されている場合のみ） */}
-                    {showHTMLEditor && (
-                        <div className={styles.editorSection} style={{ width: `${sectionWidths.html}%` }}>
-                            <div className={styles.sectionHeader}>HTML</div>
-                            <div className={styles.editorContainer}>
-                                <Editor
-                                    height={editorHeight}
-                                    defaultLanguage="html"
-                                    value={htmlCode}
-                                    onChange={handleHtmlChange}
-                                    onMount={handleHtmlEditorDidMount}
-                                    theme={editorTheme}
-                                    options={{
-                                        minimap: { enabled: false },
-                                        fontSize: 14,
-                                        lineNumbers: showLineNumbers ? 'on' : 'off',
-                                        folding: false,
-                                        padding: { top: 5, bottom: 5 },
-                                        roundedSelection: false,
-                                        wordWrap: 'off',
-                                        tabSize: 2,
-                                        insertSpaces: true,
-                                        scrollBeyondLastLine: false,
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    )}
+                    {visibleEditorConfigs.map((config, index) => {
+                        const nextConfig = visibleEditorConfigs[index + 1];
 
-                    {/* CSSエディタ（CSSが定義されている場合のみ） */}
-                    {showCSSEditor && (
-                        <div className={styles.editorSection} style={{ width: `${sectionWidths.css}%` }}>
-                            <div className={styles.sectionHeader}>CSS</div>
-                            <div className={styles.editorContainer}>
-                                <Editor
-                                    height={editorHeight}
-                                    defaultLanguage="css"
-                                    value={cssCode}
-                                    onChange={handleCssChange}
-                                    onMount={handleCssEditorDidMount}
-                                    theme={editorTheme}
-                                    options={{
-                                        minimap: { enabled: false },
-                                        fontSize: 14,
-                                        lineNumbers: showLineNumbers ? 'on' : 'off',
-                                        folding: false,
-                                        padding: { top: 5, bottom: 5 },
-                                        roundedSelection: false,
-                                        wordWrap: 'off',
-                                        tabSize: 2,
-                                        insertSpaces: true,
-                                        scrollBeyondLastLine: false,
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* JSエディタ（JSが定義されている場合のみ） */}
-                    {showJSEditor && (
-                        <div className={styles.editorSection} style={{ width: `${sectionWidths.js}%` }}>
-                            <div className={styles.sectionHeader}>JavaScript</div>
-                            <div className={styles.editorContainer}>
-                                <Editor
-                                    height={editorHeight}
-                                    defaultLanguage="javascript"
-                                    value={jsCode}
-                                    onChange={handleJsChange}
-                                    onMount={handleJsEditorDidMount}
-                                    theme={editorTheme}
-                                    options={{
-                                        minimap: { enabled: false },
-                                        fontSize: 14,
-                                        lineNumbers: showLineNumbers ? 'on' : 'off',
-                                        folding: false,
-                                        padding: { top: 5, bottom: 5 },
-                                        roundedSelection: false,
-                                        wordWrap: 'off',
-                                        tabSize: 2,
-                                        insertSpaces: true,
-                                        scrollBeyondLastLine: false,
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    )}
+                        return (
+                            <React.Fragment key={config.key}>
+                                <div className={styles.editorSection} style={{ width: `${sectionWidths[config.key]}%` }}>
+                                    <div className={styles.sectionHeader}>{config.label}</div>
+                                    <div className={styles.editorContainer}>
+                                        <Editor
+                                            height={editorHeight}
+                                            defaultLanguage={config.language}
+                                            value={config.value}
+                                            onChange={config.onChange}
+                                            onMount={config.onMount}
+                                            theme={editorTheme}
+                                            options={{
+                                                minimap: { enabled: false },
+                                                fontSize: 14,
+                                                lineNumbers: showLineNumbers ? 'on' : 'off',
+                                                folding: false,
+                                                padding: { top: 5, bottom: 5 },
+                                                roundedSelection: false,
+                                                wordWrap: 'off',
+                                                tabSize: 2,
+                                                insertSpaces: true,
+                                                scrollBeyondLastLine: false,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                                {nextConfig ? (
+                                    <div
+                                        className={styles.resizer}
+                                        role="separator"
+                                        aria-orientation="vertical"
+                                        aria-label={`${config.label} と ${nextConfig.label} の幅を調整`}
+                                        tabIndex={0}
+                                        onMouseDown={event => handleResizeStart(event, config.key, nextConfig.key)}
+                                        onKeyDown={event => handleResizerKeyDown(event, config.key, nextConfig.key)}
+                                        onDoubleClick={event => {
+                                            event.preventDefault();
+                                            resetSectionWidthsToAuto();
+                                        }}
+                                    >
+                                        <span className={styles.resizerGrip} />
+                                    </div>
+                                ) : null}
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
 
                 {/* プレビュー（下段） */}
