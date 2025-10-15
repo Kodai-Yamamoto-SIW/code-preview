@@ -55,6 +55,11 @@ export interface CodePreviewProps {
      * 指定された場合、HTML内で相対パスで参照可能になります
      */
     jsPath?: string;
+    /**
+     * 画像ファイルのパスとURLのマップ（Docusaurusのstatic/img/〜など）
+     * 例: { "img/sample.png": "/img/sample.png" }
+     */
+    images?: { [path: string]: string };
 }
 
 type EditorKey = 'html' | 'css' | 'js';
@@ -100,8 +105,8 @@ export default function CodePreview({
     htmlPath = 'index.html',
     cssPath,
     jsPath,
-}: CodePreviewProps): React.ReactElement {
-    // sourceIdがある場合、ストアからコードを取得または登録
+    images,
+}: CodePreviewProps) {
     let resolvedHTML = initialHTML;
     let resolvedCSS = initialCSS;
     let resolvedJS = initialJS;
@@ -740,6 +745,24 @@ export default function CodePreview({
             return `href="javascript:void(0)" onclick="document.getElementById('${id}')?.scrollIntoView({behavior: 'smooth'})"`;
         });
 
+
+    // CSS内のurl()をimagesマッピングで置換
+    const processCssCode = (code: string): string => {
+        if (!images) return code;
+        return code.replace(/url\((['"]?)([^)'"]+)\1\)/g, (match, quote, path) => {
+            // 相対パス正規化（../img/〜, ./img/〜, img/〜 など）
+            let norm = path.replace(/^\.\//, '');
+            if (norm.startsWith('..')) {
+                // 例: ../img/fence.png → img/fence.png
+                norm = norm.replace(/^\.\.\//, '');
+            }
+            if (images[norm]) {
+                return `url(${quote}${images[norm]}${quote})`;
+            }
+            return match;
+        });
+    };
+
     // HTMLコードを処理
     const processHtmlCode = (code: string): string => {
         let processed = processImagePaths(code);
@@ -798,6 +821,12 @@ export default function CodePreview({
             { path: cssPath },
             { path: jsPath },
         ];
+        // imagesで指定された画像パスも追加
+        if (images) {
+            Object.keys(images).forEach(imgPath => {
+                files.push({ path: imgPath });
+            });
+        }
 
         files.forEach(({ path }) => {
             if (!path) return;
@@ -805,16 +834,17 @@ export default function CodePreview({
             const parts = path.split('/');
             if (parts.length === 1) {
                 // ルートファイル
-                rootFiles.push(path);
+                if (!rootFiles.includes(path)) rootFiles.push(path);
             } else {
                 // フォルダ内のファイル
                 const folderPath = parts.slice(0, -1).join('/');
                 const fileName = parts[parts.length - 1];
-                
                 if (!folders.has(folderPath)) {
                     folders.set(folderPath, []);
                 }
-                folders.get(folderPath)!.push(fileName);
+                if (!folders.get(folderPath)!.includes(fileName)) {
+                    folders.get(folderPath)!.push(fileName);
+                }
             }
         });
 
@@ -823,8 +853,9 @@ export default function CodePreview({
 
     // iframeへ渡すHTML
     const generatePreviewDocument = (): string => {
-        const processedHtml = processHtmlCode(htmlCode);
-        const styleTag = cssCode ? `<style>\n${cssCode}\n</style>` : '';
+    const processedHtml = processHtmlCode(htmlCode);
+    const processedCss = processCssCode(cssCode);
+    const styleTag = processedCss ? `<style>\n${processedCss}\n</style>` : '';
         const consoleScriptTag = (showPreview || showConsole || showHTMLEditor || showJSEditor)
             ? `<script data-code-preview-internal="true">
 (function () {
@@ -1058,6 +1089,8 @@ export default function CodePreview({
             : '';
         
         // 仮想ファイルシステムの初期化スクリプト
+        // 画像パスはBlob URLではなく、Docusaurus/staticのURLをそのまま返す
+    const imagesMap = images || {};
         const virtualFileSystemScript = `<script data-code-preview-internal="true">
 (function () {
     // 仮想ファイルマップを作成
@@ -1066,6 +1099,8 @@ export default function CodePreview({
     ${htmlPath ? `virtualFiles.set(${JSON.stringify(htmlPath)}, ${JSON.stringify(htmlCode)});` : ''}
     ${cssPath ? `virtualFiles.set(${JSON.stringify(cssPath)}, ${JSON.stringify(cssCode)});` : ''}
     ${jsPath ? `virtualFiles.set(${JSON.stringify(jsPath)}, ${JSON.stringify(jsCode)});` : ''}
+    // 画像パスも登録（値はURL文字列）
+    ${Object.entries(imagesMap).map(([k, v]) => `virtualFiles.set(${JSON.stringify(k)}, ${JSON.stringify(v)});`).join('\n    ')}
 
     // パスを正規化する関数
     function normalizePath(path, baseUrl) {
@@ -1110,6 +1145,11 @@ export default function CodePreview({
 
         if (normalizedPath && virtualFiles.has(normalizedPath)) {
             const content = virtualFiles.get(normalizedPath);
+            // 画像の場合はリダイレクト的にURLを返す
+            if (typeof content === 'string' && (content.startsWith('/img/') || content.startsWith('img/'))) {
+                // fetchで画像を取得した場合は実ファイルURLへリダイレクト
+                return originalFetch.call(window, content, options);
+            }
             // 仮想的なResponseオブジェクトを返す
             return Promise.resolve({
                 ok: true,
@@ -1129,6 +1169,30 @@ export default function CodePreview({
         }
 
         return originalFetch.call(window, url, options);
+    };
+
+    // <img>やCSSのurl()参照も仮想パス→実URLに置換する
+    const origCreateElement = document.createElement;
+    document.createElement = function(tagName, ...args) {
+        const el = origCreateElement.call(document, tagName, ...args);
+        if (tagName.toLowerCase() === 'img') {
+            Object.defineProperty(el, 'src', {
+                set(v) {
+                    const norm = normalizePath(String(v), document.location.href);
+                    if (norm && virtualFiles.has(norm)) {
+                        const content = virtualFiles.get(norm);
+                        if (typeof content === 'string' && (content.startsWith('/img/') || content.startsWith('img/'))) {
+                            el.setAttribute('src', content);
+                            return;
+                        }
+                    }
+                    el.setAttribute('src', v);
+                },
+                get() { return el.getAttribute('src'); },
+                configurable: true
+            });
+        }
+        return el;
     };
 
     // グローバルに公開（デバッグ用）
