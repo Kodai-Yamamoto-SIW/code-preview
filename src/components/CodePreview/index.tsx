@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import styles from './styles.module.css';
 
-// sourceIdごとの初期コードを保存するグローバルストア
-const sourceCodeStore = new Map<string, { html: string; css: string; js: string }>();
+// sourceIdごとの初期コード・画像を保存するグローバルストア
+const sourceCodeStore = new Map<string, { html: string; css: string; js: string; images?: { [path: string]: string } }>();
 
 // ストア更新を購読するリスナー
 type StoreListener = () => void;
@@ -110,6 +110,7 @@ export default function CodePreview({
     let resolvedHTML = initialHTML;
     let resolvedCSS = initialCSS;
     let resolvedJS = initialJS;
+    let resolvedImages = images;
 
     // 各プロパティが明示的に指定されているか個別に判定
     const hasInitialHTML = initialHTML !== undefined;
@@ -131,6 +132,9 @@ export default function CodePreview({
             }
             if (!hasInitialJS && stored.js) {
                 resolvedJS = stored.js;
+            }
+            if (!images && stored.images) {
+                resolvedImages = stored.images;
             }
         }
     }
@@ -230,15 +234,14 @@ export default function CodePreview({
     useEffect(() => {
         if (sourceId && isSourceProvider) {
             // 既存のストアの値を取得
-            const existing = sourceCodeStore.get(sourceId) || { html: '', css: '', js: '' };
-            
+            const existing = sourceCodeStore.get(sourceId) || { html: '', css: '', js: '', images: undefined };
             // 指定されたプロパティのみ上書き（マージ）
             const updated = {
                 html: hasInitialHTML ? (initialHTML || '') : existing.html,
                 css: hasInitialCSS ? (initialCSS || '') : existing.css,
                 js: hasInitialJS ? (initialJS || '') : existing.js,
+                images: images || existing.images,
             };
-            
             sourceCodeStore.set(sourceId, updated);
             // 他のインスタンスに通知
             notifyStoreUpdate(sourceId);
@@ -748,7 +751,7 @@ export default function CodePreview({
 
     // CSS内のurl()をimagesマッピングで置換
     const processCssCode = (code: string): string => {
-        if (!images) return code;
+        if (!resolvedImages) return code;
         return code.replace(/url\((['"]?)([^)'"]+)\1\)/g, (match, quote, path) => {
             // 相対パス正規化（../img/〜, ./img/〜, img/〜 など）
             let norm = path.replace(/^\.\//, '');
@@ -756,8 +759,8 @@ export default function CodePreview({
                 // 例: ../img/fence.png → img/fence.png
                 norm = norm.replace(/^\.\.\//, '');
             }
-            if (images[norm]) {
-                return `url(${quote}${images[norm]}${quote})`;
+            if (resolvedImages[norm]) {
+                return `url(${quote}${resolvedImages[norm]}${quote})`;
             }
             return match;
         });
@@ -822,8 +825,8 @@ export default function CodePreview({
             { path: jsPath },
         ];
         // imagesで指定された画像パスも追加
-        if (images) {
-            Object.keys(images).forEach(imgPath => {
+        if (resolvedImages) {
+            Object.keys(resolvedImages).forEach(imgPath => {
                 files.push({ path: imgPath });
             });
         }
