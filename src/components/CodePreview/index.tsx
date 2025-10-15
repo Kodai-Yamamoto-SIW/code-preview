@@ -2,8 +2,16 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import styles from './styles.module.css';
 
-// sourceIdごとの初期コード・画像を保存するグローバルストア
-const sourceCodeStore = new Map<string, { html: string; css: string; js: string; images?: { [path: string]: string } }>();
+// sourceIdごとの初期コード・画像・パスを保存するグローバルストア
+const sourceCodeStore = new Map<string, {
+    html: string;
+    css: string;
+    js: string;
+    images?: { [path: string]: string };
+    htmlPath?: string;
+    cssPath?: string;
+    jsPath?: string;
+}>();
 
 // ストア更新を購読するリスナー
 type StoreListener = () => void;
@@ -111,6 +119,9 @@ export default function CodePreview({
     let resolvedCSS = initialCSS;
     let resolvedJS = initialJS;
     let resolvedImages = images;
+    let resolvedHtmlPath = htmlPath;
+    let resolvedCssPath = cssPath;
+    let resolvedJsPath = jsPath;
 
     // 各プロパティが明示的に指定されているか個別に判定
     const hasInitialHTML = initialHTML !== undefined;
@@ -135,6 +146,15 @@ export default function CodePreview({
             }
             if (!images && stored.images) {
                 resolvedImages = stored.images;
+            }
+            if (!htmlPath && stored.htmlPath) {
+                resolvedHtmlPath = stored.htmlPath;
+            }
+            if (!cssPath && stored.cssPath) {
+                resolvedCssPath = stored.cssPath;
+            }
+            if (!jsPath && stored.jsPath) {
+                resolvedJsPath = stored.jsPath;
             }
         }
     }
@@ -234,13 +254,16 @@ export default function CodePreview({
     useEffect(() => {
         if (sourceId && isSourceProvider) {
             // 既存のストアの値を取得
-            const existing = sourceCodeStore.get(sourceId) || { html: '', css: '', js: '', images: undefined };
+            const existing = sourceCodeStore.get(sourceId) || { html: '', css: '', js: '', images: undefined, htmlPath: undefined, cssPath: undefined, jsPath: undefined };
             // 指定されたプロパティのみ上書き（マージ）
             const updated = {
                 html: hasInitialHTML ? (initialHTML || '') : existing.html,
                 css: hasInitialCSS ? (initialCSS || '') : existing.css,
                 js: hasInitialJS ? (initialJS || '') : existing.js,
                 images: images || existing.images,
+                htmlPath: htmlPath || existing.htmlPath,
+                cssPath: cssPath || existing.cssPath,
+                jsPath: jsPath || existing.jsPath,
             };
             sourceCodeStore.set(sourceId, updated);
             // 他のインスタンスに通知
@@ -820,9 +843,9 @@ export default function CodePreview({
         const rootFiles: string[] = [];
 
         const files = [
-            { path: htmlPath },
-            { path: cssPath },
-            { path: jsPath },
+            { path: resolvedHtmlPath },
+            { path: resolvedCssPath },
+            { path: resolvedJsPath },
         ];
         // imagesで指定された画像パスも追加
         if (resolvedImages) {
