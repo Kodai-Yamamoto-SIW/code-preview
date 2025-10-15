@@ -40,6 +40,21 @@ export interface CodePreviewProps {
      * initialHTML/CSS/JS が2つ目以降でも自動的に使われます。
      */
     sourceId?: string;
+    /**
+     * HTMLファイルのパス（例: "index.html"）
+     * デフォルト: "index.html"
+     */
+    htmlPath?: string;
+    /**
+     * CSSファイルのパス（例: "css/style.css"）
+     * 指定された場合、HTML内で相対パスで参照可能になります
+     */
+    cssPath?: string;
+    /**
+     * JavaScriptファイルのパス（例: "js/script.js"）
+     * 指定された場合、HTML内で相対パスで参照可能になります
+     */
+    jsPath?: string;
 }
 
 type EditorKey = 'html' | 'css' | 'js';
@@ -82,6 +97,9 @@ export default function CodePreview({
     previewVisible,
     consoleVisible,
     sourceId,
+    htmlPath = 'index.html',
+    cssPath,
+    jsPath,
 }: CodePreviewProps): React.ReactElement {
     // sourceIdがある場合、ストアからコードを取得または登録
     let resolvedHTML = initialHTML;
@@ -127,6 +145,7 @@ export default function CodePreview({
     const [previewHeight, setPreviewHeight] = useState(minHeight);
     const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
     const [showLineNumbers, setShowLineNumbers] = useState(false);
+    const [showFileStructure, setShowFileStructure] = useState(false);
 
     // 各セクションの幅を管理するstate
     const [sectionWidths, setSectionWidths] = useState<Record<EditorKey, number>>({ html: 50, css: 50, js: 0 });
@@ -725,7 +744,81 @@ export default function CodePreview({
     const processHtmlCode = (code: string): string => {
         let processed = processImagePaths(code);
         processed = processAnchorLinks(processed);
+        processed = resolveFilePaths(processed);
         return processed;
+    };
+
+    // ファイルパスを解決してインライン化
+    const resolveFilePaths = (html: string): string => {
+        let processed = html;
+
+        // CSSファイルのパスを解決
+        if (cssPath && cssCode) {
+            // <link href="..." rel="stylesheet"> を検索して置き換え
+            const linkRegex = new RegExp(
+                `<link\\s+[^>]*href=["']${cssPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*>`,
+                'gi'
+            );
+            processed = processed.replace(linkRegex, () => {
+                return `<style data-from-file="${cssPath}">\n${cssCode}\n</style>`;
+            });
+
+            // 逆順も対応: rel="stylesheet" href="..."
+            const linkRegex2 = new RegExp(
+                `<link\\s+[^>]*rel=["']stylesheet["'][^>]*href=["']${cssPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*>`,
+                'gi'
+            );
+            processed = processed.replace(linkRegex2, () => {
+                return `<style data-from-file="${cssPath}">\n${cssCode}\n</style>`;
+            });
+        }
+
+        // JavaScriptファイルのパスを解決
+        if (jsPath && jsCode) {
+            // <script src="..."></script> を検索して置き換え
+            const scriptRegex = new RegExp(
+                `<script\\s+[^>]*src=["']${jsPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*>\\s*</script>`,
+                'gi'
+            );
+            processed = processed.replace(scriptRegex, () => {
+                return `<script data-from-file="${jsPath}">\n${jsCode}\n</script>`;
+            });
+        }
+
+        return processed;
+    };
+
+    // ファイル構造をツリー形式で生成
+    const buildFileStructure = (): { folders: Map<string, string[]>; rootFiles: string[] } => {
+        const folders = new Map<string, string[]>();
+        const rootFiles: string[] = [];
+
+        const files = [
+            { path: htmlPath },
+            { path: cssPath },
+            { path: jsPath },
+        ];
+
+        files.forEach(({ path }) => {
+            if (!path) return;
+
+            const parts = path.split('/');
+            if (parts.length === 1) {
+                // ルートファイル
+                rootFiles.push(path);
+            } else {
+                // フォルダ内のファイル
+                const folderPath = parts.slice(0, -1).join('/');
+                const fileName = parts[parts.length - 1];
+                
+                if (!folders.has(folderPath)) {
+                    folders.set(folderPath, []);
+                }
+                folders.get(folderPath)!.push(fileName);
+            }
+        });
+
+        return { folders, rootFiles };
     };
 
     // iframeへ渡すHTML
@@ -1113,6 +1206,39 @@ export default function CodePreview({
             ) : null}
 
             <div className={styles.splitLayout} ref={containerRef} style={splitLayoutStyle}>
+                {/* ファイル構造の表示 */}
+                {showFileStructure && (
+                    <div className={styles.fileStructure}>
+                        <div className={styles.fileStructureTitle}>📁 ファイル構造</div>
+                        <div className={styles.fileTree}>
+                            {(() => {
+                                const { folders, rootFiles } = buildFileStructure();
+                                return (
+                                    <>
+                                        {rootFiles.map(file => (
+                                            <div key={file} className={styles.fileTreeItem}>
+                                                <span className={styles.fileIcon}>📄</span> {file}
+                                            </div>
+                                        ))}
+                                        {Array.from(folders.entries()).map(([folderPath, files]) => (
+                                            <div key={folderPath} className={styles.fileTreeFolder}>
+                                                <div className={styles.fileTreeItem}>
+                                                    <span className={styles.folderIcon}>📁</span> {folderPath}
+                                                </div>
+                                                {files.map(file => (
+                                                    <div key={`${folderPath}/${file}`} className={styles.fileTreeSubItem}>
+                                                        <span className={styles.fileIcon}>📄</span> {file}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ))}
+                                    </>
+                                );
+                            })()}
+                        </div>
+                    </div>
+                )}
+                
                 {/* エディタセクション（上段） */}
                 <div className={editorsRowClassName} style={editorsRowStyle} ref={editorsRowRef}>
                     <button
@@ -1125,6 +1251,17 @@ export default function CodePreview({
                         <span aria-hidden="true">#</span>
                         <span className={styles.hiddenText}>{showLineNumbers ? '行番号を隠す' : '行番号を表示'}</span>
                     </button>
+                    <button
+                        type="button"
+                        className={styles.gyoButton}
+                        onClick={() => setShowFileStructure(prev => !prev)}
+                        aria-pressed={showFileStructure}
+                        title={showFileStructure ? 'ファイル構造を隠す' : 'ファイル構造を表示'}
+                    >
+                        <span aria-hidden="true">📁</span>
+                        <span className={styles.hiddenText}>{showFileStructure ? 'ファイル構造を隠す' : 'ファイル構造を表示'}</span>
+                    </button>
+                    
                     {visibleEditorConfigs.map((config, index) => {
                         const nextConfig = visibleEditorConfigs[index + 1];
 
