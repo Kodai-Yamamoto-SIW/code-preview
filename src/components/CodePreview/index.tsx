@@ -1056,23 +1056,92 @@ export default function CodePreview({
 })();
 <\/script>`
             : '';
-        const scriptTag = jsCode
-            ? `<script data-code-preview-internal="true">
+        
+        // 仮想ファイルシステムの初期化スクリプト
+        const virtualFileSystemScript = `<script data-code-preview-internal="true">
 (function () {
-    const currentScript = document.currentScript;
-                    if (currentScript && currentScript.parentNode) {
-                        currentScript.parentNode.removeChild(currentScript);
+    // 仮想ファイルマップを作成
+    const virtualFiles = new Map();
+    // ファイルを安全にセット
+    ${htmlPath ? `virtualFiles.set(${JSON.stringify(htmlPath)}, ${JSON.stringify(htmlCode)});` : ''}
+    ${cssPath ? `virtualFiles.set(${JSON.stringify(cssPath)}, ${JSON.stringify(cssCode)});` : ''}
+    ${jsPath ? `virtualFiles.set(${JSON.stringify(jsPath)}, ${JSON.stringify(jsCode)});` : ''}
+
+    // パスを正規化する関数
+    function normalizePath(path, baseUrl) {
+        try {
+            // 絶対URLの場合はそのまま返す
+            if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:') || path.startsWith('blob:')) {
+                return null;
+            }
+
+            // 相対パスを解決
+            let resolved = path;
+            if (path.startsWith('./')) {
+                resolved = path.slice(2);
+            } else if (path.startsWith('../')) {
+                // 基準パスを取得（htmlPathのディレクトリ）
+                const basePath = ${JSON.stringify(htmlPath || '')}.split('/').slice(0, -1).join('/');
+                const parts = path.split('/');
+                const baseParts = basePath ? basePath.split('/') : [];
+
+                for (let i = 0; i < parts.length; i++) {
+                    if (parts[i] === '..') {
+                        baseParts.pop();
+                    } else if (parts[i] !== '.') {
+                        baseParts.push(parts[i]);
                     }
-                    try {
-                        window.eval(${JSON.stringify(`${jsCode}
-                //# sourceURL=code-preview-js.js`)});
-                    } finally {
-                        if (currentScript && currentScript.parentNode) {
-                            currentScript.parentNode.removeChild(currentScript);
-                        }
+                }
+                resolved = baseParts.join('/');
+            }
+
+            return resolved;
+        } catch (e) {
+            return null;
+        }
     }
+
+    // オリジナルのfetchを保存
+    const originalFetch = window.fetch;
+
+    // fetchをオーバーライド
+    window.fetch = function(url, options) {
+        const normalizedPath = normalizePath(String(url), document.location.href);
+
+        if (normalizedPath && virtualFiles.has(normalizedPath)) {
+            const content = virtualFiles.get(normalizedPath);
+            // 仮想的なResponseオブジェクトを返す
+            return Promise.resolve({
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: new Headers({
+                    'Content-Type': normalizedPath.endsWith('.css') ? 'text/css' :
+                                   normalizedPath.endsWith('.js') ? 'application/javascript' :
+                                   normalizedPath.endsWith('.html') ? 'text/html' : 'text/plain'
+                }),
+                text: () => Promise.resolve(content),
+                json: () => Promise.resolve(JSON.parse(content)),
+                blob: () => Promise.resolve(new Blob([content])),
+                arrayBuffer: () => Promise.resolve(new TextEncoder().encode(content).buffer),
+                clone: function() { return this; }
+            });
+        }
+
+        return originalFetch.call(window, url, options);
+    };
+
+    // グローバルに公開（デバッグ用）
+    window.__virtualFiles__ = virtualFiles;
 })();
-<\/script>`
+<\/script>`;
+        
+        // jsCodeを<script>タグ内に直接埋め込む（</script>エスケープ）
+        function escapeScriptEndTag(code: string): string {
+            return code.replace(/<\/script>/gi, '<' + '/script>');
+        }
+        const scriptTag = jsCode
+            ? `<script data-code-preview-internal="true">\n${escapeScriptEndTag(jsCode)}\n<\/script>`
             : '';
 
         if (processedHtml.includes('<!DOCTYPE') || processedHtml.includes('<html')) {
@@ -1084,6 +1153,16 @@ export default function CodePreview({
                     doc = doc.replace(/<html([^>]*)>/i, `<html$1><head>${consoleScriptTag}</head>`);
                 } else {
                     doc = `${consoleScriptTag}${doc}`;
+                }
+            }
+            // 仮想ファイルシステムスクリプトを挿入
+            if (virtualFileSystemScript) {
+                if (/<head[^>]*>/i.test(doc)) {
+                    doc = doc.replace(/<head([^>]*)>/i, `<head$1>${virtualFileSystemScript}`);
+                } else if (/<html[^>]*>/i.test(doc)) {
+                    doc = doc.replace(/<html([^>]*)>/i, `<html$1><head>${virtualFileSystemScript}</head>`);
+                } else {
+                    doc = `${virtualFileSystemScript}${doc}`;
                 }
             }
             if (styleTag) {
@@ -1113,6 +1192,7 @@ export default function CodePreview({
   <title>プレビュー</title>
     ${styleTag}
     ${consoleScriptTag}
+    ${virtualFileSystemScript}
 </head>
 <body>
   ${processedHtml}
@@ -1340,7 +1420,8 @@ export default function CodePreview({
                                         <span>{log}</span>
                                     </div>
                                 ))
-                            )}
+                            )
+                        }
                         </div>
                     </div>
                 )}
