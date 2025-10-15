@@ -26,6 +26,11 @@ const notifyStoreUpdate = (sourceId: string) => {
 };
 
 export interface CodePreviewProps {
+    /**
+     * ファイル構造（エクスプローラ）の初期表示状態
+     * trueで初期表示、falseで非表示
+     */
+    fileStructureVisible?: boolean;
     initialHTML?: string;
     initialCSS?: string;
     initialJS?: string;
@@ -114,6 +119,7 @@ export default function CodePreview({
     cssPath,
     jsPath,
     images,
+    fileStructureVisible,
 }: CodePreviewProps) {
     let resolvedHTML = initialHTML;
     let resolvedCSS = initialCSS;
@@ -174,7 +180,7 @@ export default function CodePreview({
     const [previewHeight, setPreviewHeight] = useState(minHeight);
     const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
     const [showLineNumbers, setShowLineNumbers] = useState(false);
-    const [showFileStructure, setShowFileStructure] = useState(false);
+    const [showFileStructure, setShowFileStructure] = useState(!!fileStructureVisible);
 
     // 各セクションの幅を管理するstate
     const [sectionWidths, setSectionWidths] = useState<Record<EditorKey, number>>({ html: 50, css: 50, js: 0 });
