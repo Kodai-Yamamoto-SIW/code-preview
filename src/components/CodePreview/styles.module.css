@@ -56,6 +56,10 @@
     right: 40px;
 }
 
+.gyoButton:nth-of-type(3) {
+    right: 72px;
+}
+
 .gyoButton:hover,
 .gyoButton:focus {
     background: #e9edf2;
@@ -268,6 +272,7 @@
         display: none;
     }
 }
+
 /* ファイル構造表示 */
 .fileStructure {
     background: #f6f8fa;

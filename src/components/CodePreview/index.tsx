@@ -181,6 +181,7 @@ export default function CodePreview({
     const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
     const [showLineNumbers, setShowLineNumbers] = useState(false);
     const [showFileStructure, setShowFileStructure] = useState(!!fileStructureVisible);
+    const [iframeKey, setIframeKey] = useState(0); // iframeを強制再マウントするためのkey
 
     // 各セクションの幅を管理するstate
     const [sectionWidths, setSectionWidths] = useState<Record<EditorKey, number>>({ html: 50, css: 50, js: 0 });
@@ -196,6 +197,16 @@ export default function CodePreview({
     const htmlEditorRef = useRef<any>(null);
     const cssEditorRef = useRef<any>(null);
     const jsEditorRef = useRef<any>(null);
+
+    // 初期状態を保持するref
+    const initialStateRef = useRef({
+        html: ensureTrailingNewline(resolvedHTML || ''),
+        css: ensureTrailingNewline(resolvedCSS || ''),
+        js: ensureTrailingNewline(resolvedJS || ''),
+    });
+
+    // 長押し用のタイマーref
+    const resetTimerRef = useRef<number | null>(null);
 
     // ストア更新の購読
     useEffect(() => {
@@ -323,8 +334,8 @@ export default function CodePreview({
             return { html: 100, css: 0, js: 0 };
         }
 
-    const editors: Array<{ key: EditorKey; needed: number }> = [];
-    const minEditorWidth = MIN_EDITOR_WIDTH;
+        const editors: Array<{ key: EditorKey; needed: number }> = [];
+        const minEditorWidth = MIN_EDITOR_WIDTH;
         const containerWidth = container.offsetWidth || 800; // フォールバック値
 
         if (showHTMLEditor) {
@@ -454,6 +465,55 @@ export default function CodePreview({
     const toggleLineNumbers = () => {
         setShowLineNumbers(prev => !prev);
     };
+
+    // リセット関数
+    const handleReset = () => {
+        // 編集したコードを初期状態に戻す
+        setHtmlCode(initialStateRef.current.html);
+        setCssCode(initialStateRef.current.css);
+        setJsCode(initialStateRef.current.js);
+
+        // コンソールログをクリア
+        setConsoleLogs([]);
+
+        // iframeを強制的に再マウント
+        setIframeKey(prev => prev + 1);
+
+        // プレビューを再レンダリング
+        setTimeout(() => {
+            updatePreviewHeight();
+        }, 100);
+    };
+
+    // 長押しハンドラー
+    const handleResetMouseDown = () => {
+        resetTimerRef.current = window.setTimeout(() => {
+            handleReset();
+        }, 500); // 500ミリ秒（0.5秒）の長押し
+    };
+
+    const handleResetMouseUp = () => {
+        if (resetTimerRef.current) {
+            clearTimeout(resetTimerRef.current);
+            resetTimerRef.current = null;
+        }
+    };
+
+    const handleResetMouseLeave = () => {
+        if (resetTimerRef.current) {
+            clearTimeout(resetTimerRef.current);
+            resetTimerRef.current = null;
+        }
+    };
+
+    // コンポーネントのアンマウント時にタイマーをクリア
+    useEffect(() => {
+        return () => {
+            if (resetTimerRef.current) {
+                clearTimeout(resetTimerRef.current);
+            }
+        };
+    }, []);
 
     const computeNewPairPercents = (
         containerWidth: number,
@@ -885,9 +945,9 @@ export default function CodePreview({
 
     // iframeへ渡すHTML
     const generatePreviewDocument = (): string => {
-    const processedHtml = processHtmlCode(htmlCode);
-    const processedCss = processCssCode(cssCode);
-    const styleTag = processedCss ? `<style>\n${processedCss}\n</style>` : '';
+        const processedHtml = processHtmlCode(htmlCode);
+        const processedCss = processCssCode(cssCode);
+        const styleTag = processedCss ? `<style>\n${processedCss}\n</style>` : '';
         const consoleScriptTag = (showPreview || showConsole || showHTMLEditor || showJSEditor)
             ? `<script data-code-preview-internal="true">
 (function () {
@@ -1119,10 +1179,10 @@ export default function CodePreview({
 })();
 <\/script>`
             : '';
-        
+
         // 仮想ファイルシステムの初期化スクリプト
         // 画像パスはBlob URLではなく、Docusaurus/staticのURLをそのまま返す
-    const imagesMap = images || {};
+        const imagesMap = images || {};
         const virtualFileSystemScript = `<script data-code-preview-internal="true">
 (function () {
     // 仮想ファイルマップを作成
@@ -1231,7 +1291,7 @@ export default function CodePreview({
     window.__virtualFiles__ = virtualFiles;
 })();
 <\/script>`;
-        
+
         // jsCodeを<script>タグ内に直接埋め込む（</script>エスケープ）
         function escapeScriptEndTag(code: string): string {
             return code.replace(/<\/script>/gi, '<' + '/script>');
@@ -1359,7 +1419,7 @@ export default function CodePreview({
 
     const renderPreviewIframe = (visible: boolean): React.ReactElement => (
         <iframe
-            key={visible ? 'code-preview-visible' : 'code-preview-hidden'}
+            key={`${visible ? 'visible' : 'hidden'}-${iframeKey}`}
             ref={iframeRef}
             srcDoc={generatePreviewDocument()}
             className={visible ? styles.preview : undefined}
@@ -1414,9 +1474,22 @@ export default function CodePreview({
                         </div>
                     </div>
                 )}
-                
+
                 {/* エディタセクション（上段） */}
                 <div className={editorsRowClassName} style={editorsRowStyle} ref={editorsRowRef}>
+                    <button
+                        type="button"
+                        className={styles.gyoButton}
+                        onMouseDown={handleResetMouseDown}
+                        onMouseUp={handleResetMouseUp}
+                        onMouseLeave={handleResetMouseLeave}
+                        onTouchStart={handleResetMouseDown}
+                        onTouchEnd={handleResetMouseUp}
+                        title="長押しでリセット"
+                    >
+                        <span aria-hidden="true">🔄</span>
+                        <span className={styles.hiddenText}>長押しでリセット</span>
+                    </button>
                     <button
                         type="button"
                         className={styles.gyoButton}
@@ -1437,7 +1510,7 @@ export default function CodePreview({
                         <span aria-hidden="true">📁</span>
                         <span className={styles.hiddenText}>{showFileStructure ? 'ファイル構造を隠す' : 'ファイル構造を表示'}</span>
                     </button>
-                    
+
                     {visibleEditorConfigs.map((config, index) => {
                         const nextConfig = visibleEditorConfigs[index + 1];
 
@@ -1517,7 +1590,7 @@ export default function CodePreview({
                                     </div>
                                 ))
                             )
-                        }
+                            }
                         </div>
                     </div>
                 )}
