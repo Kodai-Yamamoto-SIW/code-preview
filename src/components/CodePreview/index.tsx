@@ -207,6 +207,8 @@ export default function CodePreview({
 
     // 長押し用のタイマーref
     const resetTimerRef = useRef<number | null>(null);
+    const [resetProgress, setResetProgress] = useState(0); // 0~1
+    const resetProgressIntervalRef = useRef<number | null>(null);
 
     // ストア更新の購読
     useEffect(() => {
@@ -487,8 +489,19 @@ export default function CodePreview({
 
     // 長押しハンドラー
     const handleResetMouseDown = () => {
+        let start = Date.now();
+        setResetProgress(0);
+        resetProgressIntervalRef.current = window.setInterval(() => {
+            const elapsed = Date.now() - start;
+            setResetProgress(Math.min(elapsed / 500, 1));
+        }, 16);
         resetTimerRef.current = window.setTimeout(() => {
+            setResetProgress(1);
             handleReset();
+            if (resetProgressIntervalRef.current) {
+                clearInterval(resetProgressIntervalRef.current);
+                resetProgressIntervalRef.current = null;
+            }
         }, 500); // 500ミリ秒（0.5秒）の長押し
     };
 
@@ -497,6 +510,11 @@ export default function CodePreview({
             clearTimeout(resetTimerRef.current);
             resetTimerRef.current = null;
         }
+        if (resetProgressIntervalRef.current) {
+            clearInterval(resetProgressIntervalRef.current);
+            resetProgressIntervalRef.current = null;
+        }
+        setResetProgress(0);
     };
 
     const handleResetMouseLeave = () => {
@@ -504,6 +522,11 @@ export default function CodePreview({
             clearTimeout(resetTimerRef.current);
             resetTimerRef.current = null;
         }
+        if (resetProgressIntervalRef.current) {
+            clearInterval(resetProgressIntervalRef.current);
+            resetProgressIntervalRef.current = null;
+        }
+        setResetProgress(0);
     };
 
     // コンポーネントのアンマウント時にタイマーをクリア
@@ -1487,7 +1510,48 @@ export default function CodePreview({
                         onTouchEnd={handleResetMouseUp}
                         title="長押しでリセット"
                     >
-                        <span aria-hidden="true">🔄</span>
+                        <span
+                            className={
+                                styles.resetProgressCircle +
+                                (resetProgress > 0 ? ' ' + styles.isCharging : '')
+                            }
+                            aria-hidden="true"
+                        >
+                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                {/* チャージ進行度（細め・進行時のみ） */}
+                                {resetProgress > 0 && (
+                                    <circle
+                                        cx="12" cy="12" r="10"
+                                        fill="none"
+                                        stroke="#218bff"
+                                        strokeWidth="2.2"
+                                        strokeLinecap="round"
+                                        strokeDasharray={2 * Math.PI * 10}
+                                        strokeDashoffset={(1 - resetProgress) * 2 * Math.PI * 10}
+                                        style={{ transition: 'stroke-dashoffset 0.05s linear' }}
+                                    />
+                                )}
+                                {/* 中央のリロード（リセット）アイコン */}
+                                <g>
+                                    <path
+                                        d="M12 5a7 7 0 1 1-5.3 2.7"
+                                        fill="none"
+                                        stroke="#218bff"
+                                        strokeWidth="2.2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
+                                    <polyline
+                                        points="6.5,7.5 6.5,4.5 9.5,4.5"
+                                        fill="none"
+                                        stroke="#218bff"
+                                        strokeWidth="2.2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
+                                </g>
+                            </svg>
+                        </span>
                         <span className={styles.hiddenText}>長押しでリセット</span>
                     </button>
                     <button
