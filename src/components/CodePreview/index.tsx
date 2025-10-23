@@ -860,6 +860,10 @@ export default function CodePreview({
             return `href="javascript:void(0)" onclick="document.getElementById('${id}')?.scrollIntoView({behavior: 'smooth'})"`;
         });
 
+    // </script> タグをエスケープする関数
+    const escapeScriptEndTag = (code: string): string => {
+        return code.replace(/<\/script>/gi, '<' + '/script>');
+    };
 
     // CSS内のurl()をimagesマッピングで置換
     const processCssCode = (code: string): string => {
@@ -968,7 +972,7 @@ export default function CodePreview({
 
     // iframeへ渡すHTML
     const generatePreviewDocument = (): string => {
-        const processedHtml = processHtmlCode(htmlCode);
+        const processedHtml = escapeScriptEndTag(processHtmlCode(htmlCode));
         const processedCss = processCssCode(cssCode);
         const styleTag = processedCss ? `<style>\n${processedCss}\n</style>` : '';
         const consoleScriptTag = (showPreview || showConsole || showHTMLEditor || showJSEditor)
@@ -1206,14 +1210,20 @@ export default function CodePreview({
         // 仮想ファイルシステムの初期化スクリプト
         // 画像パスはBlob URLではなく、Docusaurus/staticのURLをそのまま返す
         const imagesMap = images || {};
+
+        // JSON.stringify後に</script>をエスケープする関数
+        const jsonStringifyAndEscape = (value: string): string => {
+            return JSON.stringify(value).replace(/<\/script>/gi, '<\\/script>');
+        };
+
         const virtualFileSystemScript = `<script data-code-preview-internal="true">
 (function () {
     // 仮想ファイルマップを作成
     const virtualFiles = new Map();
     // ファイルを安全にセット
-    ${htmlPath ? `virtualFiles.set(${JSON.stringify(htmlPath)}, ${JSON.stringify(htmlCode)});` : ''}
+    ${htmlPath ? `virtualFiles.set(${JSON.stringify(htmlPath)}, ${jsonStringifyAndEscape(htmlCode)});` : ''}
     ${cssPath ? `virtualFiles.set(${JSON.stringify(cssPath)}, ${JSON.stringify(cssCode)});` : ''}
-    ${jsPath ? `virtualFiles.set(${JSON.stringify(jsPath)}, ${JSON.stringify(jsCode)});` : ''}
+    ${jsPath ? `virtualFiles.set(${JSON.stringify(jsPath)}, ${jsonStringifyAndEscape(jsCode)});` : ''}
     // 画像パスも登録（値はURL文字列）
     ${Object.entries(imagesMap).map(([k, v]) => `virtualFiles.set(${JSON.stringify(k)}, ${JSON.stringify(v)});`).join('\n    ')}
 
@@ -1316,9 +1326,6 @@ export default function CodePreview({
 <\/script>`;
 
         // jsCodeを<script>タグ内に直接埋め込む（</script>エスケープ）
-        function escapeScriptEndTag(code: string): string {
-            return code.replace(/<\/script>/gi, '<' + '/script>');
-        }
         const scriptTag = jsCode
             ? `<script data-code-preview-internal="true">\n${escapeScriptEndTag(jsCode)}\n<\/script>`
             : '';
