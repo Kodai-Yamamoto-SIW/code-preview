@@ -204,6 +204,12 @@ export default function CodePreview({
         css: ensureTrailingNewline(resolvedCSS || ''),
         js: ensureTrailingNewline(resolvedJS || ''),
     });
+    // どのエディタの初期状態を確定済みか（propsで与えられたものは最初から確定）
+    const capturedInitialRef = useRef({
+        html: !!(sourceId ? hasInitialHTML : true),
+        css: !!(sourceId ? hasInitialCSS : true),
+        js:  !!(sourceId ? hasInitialJS : true),
+    });
 
     // 長押し用のタイマーref
     const resetTimerRef = useRef<number | null>(null);
@@ -219,12 +225,25 @@ export default function CodePreview({
         if (stored) {
             if (!hasInitialHTML && stored.html) {
                 setHtmlCode(ensureTrailingNewline(stored.html));
+                // 初期基準値が未確定なら、ここで確定
+                if (!capturedInitialRef.current.html) {
+                    initialStateRef.current.html = ensureTrailingNewline(stored.html);
+                    capturedInitialRef.current.html = true;
+                }
             }
             if (!hasInitialCSS && stored.css) {
                 setCssCode(ensureTrailingNewline(stored.css));
+                if (!capturedInitialRef.current.css) {
+                    initialStateRef.current.css = ensureTrailingNewline(stored.css);
+                    capturedInitialRef.current.css = true;
+                }
             }
             if (!hasInitialJS && stored.js) {
                 setJsCode(ensureTrailingNewline(stored.js));
+                if (!capturedInitialRef.current.js) {
+                    initialStateRef.current.js = ensureTrailingNewline(stored.js);
+                    capturedInitialRef.current.js = true;
+                }
             }
         }
 
@@ -234,12 +253,24 @@ export default function CodePreview({
             if (stored) {
                 if (!hasInitialHTML && stored.html) {
                     setHtmlCode(ensureTrailingNewline(stored.html));
+                    if (!capturedInitialRef.current.html) {
+                        initialStateRef.current.html = ensureTrailingNewline(stored.html);
+                        capturedInitialRef.current.html = true;
+                    }
                 }
                 if (!hasInitialCSS && stored.css) {
                     setCssCode(ensureTrailingNewline(stored.css));
+                    if (!capturedInitialRef.current.css) {
+                        initialStateRef.current.css = ensureTrailingNewline(stored.css);
+                        capturedInitialRef.current.css = true;
+                    }
                 }
                 if (!hasInitialJS && stored.js) {
                     setJsCode(ensureTrailingNewline(stored.js));
+                    if (!capturedInitialRef.current.js) {
+                        initialStateRef.current.js = ensureTrailingNewline(stored.js);
+                        capturedInitialRef.current.js = true;
+                    }
                 }
             }
         };
