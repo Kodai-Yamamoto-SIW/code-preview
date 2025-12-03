@@ -1669,7 +1669,7 @@ export default function CodePreview({
                 {showPreview ? (
                     <div className={styles.previewSection}>
                         <div className={styles.sectionHeader}>プレビュー</div>
-                        <div className={styles.previewContainer} style={{ '--min-height': minHeight } as React.CSSProperties}>
+                        <div className={styles.previewContainer}>
                             {renderPreviewIframe(true)}
                         </div>
                     </div>
