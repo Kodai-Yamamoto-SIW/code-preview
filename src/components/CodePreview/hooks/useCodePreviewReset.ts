@@ -6,10 +6,10 @@ import { useCallback } from 'react';
 interface UseCodePreviewResetProps {
     /** コードを初期状態に戻す関数 */
     resetCodes: () => void;
-    /** コンソールログを設定する関数 */
-    setConsoleLogs: (logs: string[]) => void;
-    /** iframeのキーを更新して再マウントをトリガーする関数 */
-    setIframeKey: (updater: (prev: number) => number) => void;
+    /** コンソールログをクリアする関数 */
+    clearConsoleLogs: () => void;
+    /** iframeを再マウントする関数 */
+    remountIframe: () => void;
     /** プレビューの高さを更新する関数 */
     updatePreviewHeight: () => void;
 }
@@ -22,8 +22,8 @@ const PREVIEW_UPDATE_DELAY_MS = 100;
  */
 export const useCodePreviewReset = ({
     resetCodes,
-    setConsoleLogs,
-    setIframeKey,
+    clearConsoleLogs,
+    remountIframe,
     updatePreviewHeight
 }: UseCodePreviewResetProps) => {
     return useCallback(() => {
@@ -31,15 +31,15 @@ export const useCodePreviewReset = ({
         resetCodes();
 
         // コンソールログをクリア
-        setConsoleLogs([]);
+        clearConsoleLogs();
 
         // iframeを強制的に再マウント
-        setIframeKey(prev => prev + 1);
+        remountIframe();
 
         // プレビューを再レンダリング
         // iframeの再マウントとレンダリング完了を待つために遅延させる
         setTimeout(() => {
             updatePreviewHeight();
         }, PREVIEW_UPDATE_DELAY_MS);
-    }, [resetCodes, setConsoleLogs, setIframeKey, updatePreviewHeight]);
+    }, [resetCodes, clearConsoleLogs, remountIframe, updatePreviewHeight]);
 };

@@ -146,11 +146,19 @@ export default function CodePreview({
         setShowFileStructure(prev => !prev);
     }, []);
 
+    const clearConsoleLogs = useCallback(() => {
+        setConsoleLogs([]);
+    }, [setConsoleLogs]);
+
+    const remountIframe = useCallback(() => {
+        setIframeKey(prev => prev + 1);
+    }, []);
+
     // リセット関数
     const handleReset = useCodePreviewReset({
         resetCodes,
-        setConsoleLogs,
-        setIframeKey,
+        clearConsoleLogs,
+        remountIframe,
         updatePreviewHeight
     });
 
