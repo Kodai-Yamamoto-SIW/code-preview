@@ -42,6 +42,11 @@ export class SourceCodeStore implements ISourceCodeStore {
 
 export const globalSourceCodeStore = new SourceCodeStore();
 
+// テスト用にグローバルストアをwindowに公開
+if (typeof window !== 'undefined') {
+    (window as any).__CodePreviewStore__ = globalSourceCodeStore;
+}
+
 export const getStoredSource = (sourceId: string) => globalSourceCodeStore.get(sourceId);
 export const setStoredSource = (sourceId: string, state: SourceCodeState) => globalSourceCodeStore.set(sourceId, state);
 export const subscribeToStore = (sourceId: string, listener: StoreListener) => globalSourceCodeStore.subscribe(sourceId, listener);

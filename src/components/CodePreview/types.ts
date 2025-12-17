@@ -38,6 +38,7 @@ export interface CodePreviewProps {
      * 同じコードを持つ複数の CodePreview を簡単に設置するためのID。
      * 同じ sourceId を持つ CodePreview が複数ある場合、最初のインスタンスの
      * initialHTML/CSS/JS が2つ目以降でも自動的に使われます。
+     * ※この共有は同一ページ内でのみ有効です。
      */
     sourceId?: string;
     /**

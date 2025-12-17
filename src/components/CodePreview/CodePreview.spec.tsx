@@ -779,4 +779,69 @@ test.describe('CodePreview コンポーネントのテスト', () => {
         // src属性が置換されているか確認
         await expect(img).toHaveAttribute('src', '/static/img/real-logo.png');
     });
+
+    test('sourceIdの共有範囲が同一ページ内に限定されること', async ({ mount, page }) => {
+        // ページパスを /page-a に設定（可能な場合）
+        await page.evaluate(() => {
+            try {
+                history.replaceState({}, '', '/page-a');
+            } catch (e) {
+                console.warn('Failed to update history:', e);
+            }
+        });
+
+        await mount(
+            <CodePreview
+                sourceId="scoped-test"
+                initialHTML="<div>Page A</div>"
+            />
+        );
+
+        // ストアの状態を確認
+        const storeState = await page.evaluate(() => {
+            const store = (window as any).__CodePreviewStore__;
+            const pathname = window.location.pathname;
+            
+            if (!store) {
+                return { storeExists: false, pathname };
+            }
+
+            // 現在のパス名に基づいたキー（scoped-test:/page-a など）で保存されているか
+            const scopedData = store.get(`scoped-test:${pathname}`);
+            // スコープなしのキー（scoped-test）で保存されていないか
+            const rawData = store.get('scoped-test');
+            
+            return { storeExists: true, scopedData, rawData, pathname };
+        });
+
+        expect(storeState.storeExists).toBe(true);
+        
+        // ストアの状態が更新されるのを待つ（useEffectの実行待ち）
+        await expect.poll(async () => {
+            return await page.evaluate(() => {
+                const store = (window as any).__CodePreviewStore__;
+                const pathname = window.location.pathname;
+                const data = store?.get(`scoped-test:${pathname}`);
+                return !!data;
+            });
+        }).toBe(true);
+
+        // 詳細な検証
+        const finalState = await page.evaluate(() => {
+            const store = (window as any).__CodePreviewStore__;
+            const pathname = window.location.pathname;
+            return {
+                scopedData: store?.get(`scoped-test:${pathname}`),
+                rawData: store?.get('scoped-test')
+            };
+        });
+
+        // パス名が含まれたキーで保存されていることを確認
+        expect(finalState.scopedData).toBeDefined();
+        expect(finalState.scopedData.html).toContain('Page A');
+        
+        // 生のsourceIdでは保存されていないことを確認（これが分離の証拠）
+        expect(finalState.rawData).toBeUndefined();
+    });
 });
+

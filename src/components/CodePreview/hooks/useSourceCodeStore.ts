@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { ensureTrailingNewline } from '../utils/stringUtils';
 import { resolveInitialSource } from '../utils/sourceCodeUtils';
 import { useGlobalSourceSync } from './useGlobalSourceSync';
@@ -18,7 +18,13 @@ interface UseSourceCodeStoreProps {
 }
 
 export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
-    const { store = globalSourceCodeStore } = props;
+    const { store = globalSourceCodeStore, sourceId } = props;
+
+    const scopedSourceId = useMemo(() => {
+        if (!sourceId) return undefined;
+        if (typeof window === 'undefined') return sourceId;
+        return `${sourceId}:${window.location.pathname}`;
+    }, [sourceId]);
 
     const {
         resolvedHTML,
@@ -31,7 +37,7 @@ export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
         hasInitialHTML,
         hasInitialCSS,
         hasInitialJS
-    } = resolveInitialSource(props);
+    } = resolveInitialSource({ ...props, sourceId: scopedSourceId });
 
     const [htmlCode, setHtmlCode] = useState(ensureTrailingNewline(resolvedHTML || ''));
     const [cssCode, setCssCode] = useState(ensureTrailingNewline(resolvedCSS || ''));
@@ -44,7 +50,7 @@ export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
     });
 
     useGlobalSourceSync({
-        sourceId: props.sourceId,
+        sourceId: scopedSourceId,
         store,
         setHtmlCode,
         setCssCode,
@@ -56,7 +62,7 @@ export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
     });
 
     useGlobalSourceProvider({
-        sourceId: props.sourceId,
+        sourceId: scopedSourceId,
         store,
         initialHTML: props.initialHTML,
         initialCSS: props.initialCSS,
