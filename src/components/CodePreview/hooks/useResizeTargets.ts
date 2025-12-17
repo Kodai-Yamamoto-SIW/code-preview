@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import type { editor } from 'monaco-editor';
 import { EditorDefinition, EditorKey } from '../types';
 import { ResizeTarget } from './useEditorResize';
 

@@ -19,7 +19,6 @@ export const useCodePreview = (props: CodePreviewProps) => {
         initialCSS,
         initialJS,
         minHeight = '200px',
-        imageBasePath,
         theme = 'light',
         htmlVisible,
         cssVisible,
@@ -45,7 +44,8 @@ export const useCodePreview = (props: CodePreviewProps) => {
     // State
     const [showFileStructure, setShowFileStructure] = useState(!!fileStructureVisible);
     const [iframeKey, setIframeKey] = useState(0);
-    const iframeId = useRef(`iframe-${Math.random().toString(36).substr(2, 9)}`).current;
+    // iframeIdを一度だけ生成して保持する
+    const [iframeId] = useState(() => `iframe-${Math.random().toString(36).substr(2, 9)}`);
 
     // Store
     const {
@@ -180,7 +180,7 @@ export const useCodePreview = (props: CodePreviewProps) => {
     const editorTheme = theme === 'dark' ? 'vs-dark' : 'light';
 
     return {
-        refs: {
+        elementRefs: {
             iframeRef,
             containerRef,
             editorsRowRef,

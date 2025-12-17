@@ -44,6 +44,7 @@ export const globalSourceCodeStore = new SourceCodeStore();
 
 // テスト用にグローバルストアをwindowに公開
 if (typeof window !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).__CodePreviewStore__ = globalSourceCodeStore;
 }
 

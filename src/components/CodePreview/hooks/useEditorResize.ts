@@ -46,7 +46,7 @@ export const useEditorResize = <K extends string>({
     const dragStateRef = useRef<DragState<K> | null>(null);
     const userResizedRef = useRef(false);
 
-    const calculateOptimalWidths = (): Record<K, number> => {
+    const calculateOptimalWidths = useCallback((): Record<K, number> => {
         const container = containerRef.current;
         const containerWidth = container?.offsetWidth || 800; // フォールバック値
 
@@ -59,7 +59,7 @@ export const useEditorResize = <K extends string>({
         });
 
         return calculateOptimalEditorWidths(containerWidth, editors);
-    };
+    }, [containerRef, resizeTargets]);
 
     const updateSectionWidths = useCallback((force = false) => {
         if (!force && userResizedRef.current) {
@@ -67,7 +67,7 @@ export const useEditorResize = <K extends string>({
         }
         const newWidths = calculateOptimalWidths();
         setSectionWidths(newWidths);
-    }, [resizeTargets]);
+    }, [calculateOptimalWidths]);
 
     const handleMouseMove = useCallback((e: MouseEvent) => {
         if (!dragStateRef.current) return;
@@ -86,7 +86,7 @@ export const useEditorResize = <K extends string>({
         }
     }, []);
 
-    const handleMouseUp = useCallback(() => {
+    const handleMouseUp = useCallback(function onMouseUp() {
         if (dragStateRef.current) {
             document.body.style.cursor = dragStateRef.current.restoreCursor;
             document.body.style.userSelect = dragStateRef.current.restoreUserSelect;
@@ -95,7 +95,7 @@ export const useEditorResize = <K extends string>({
             userResizedRef.current = true;
         }
         window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('mouseup', onMouseUp);
     }, [handleMouseMove]);
 
     const handleMouseDown = (e: React.MouseEvent, leftKey: K, rightKey: K) => {

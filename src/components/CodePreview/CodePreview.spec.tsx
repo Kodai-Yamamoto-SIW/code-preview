@@ -799,6 +799,7 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
         // ストアの状態を確認
         const storeState = await page.evaluate(() => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const store = (window as any).__CodePreviewStore__;
             const pathname = window.location.pathname;
             
@@ -819,6 +820,7 @@ test.describe('CodePreview コンポーネントのテスト', () => {
         // ストアの状態が更新されるのを待つ（useEffectの実行待ち）
         await expect.poll(async () => {
             return await page.evaluate(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const store = (window as any).__CodePreviewStore__;
                 const pathname = window.location.pathname;
                 const data = store?.get(`scoped-test:${pathname}`);
@@ -828,6 +830,7 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
         // 詳細な検証
         const finalState = await page.evaluate(() => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const store = (window as any).__CodePreviewStore__;
             const pathname = window.location.pathname;
             return {

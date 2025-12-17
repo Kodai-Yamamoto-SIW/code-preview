@@ -80,7 +80,7 @@ export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
         setHtmlCode(initialStateRef.current.html);
         setCssCode(initialStateRef.current.css);
         setJsCode(initialStateRef.current.js);
-    }, []);
+    }, [setHtmlCode, setCssCode, setJsCode]);
 
     return {
         htmlCode, setHtmlCode,

@@ -50,5 +50,5 @@ export const useGlobalSourceProvider = (props: UseGlobalSourceProviderProps) => 
             store.set(sourceId, updated);
             store.notify(sourceId);
         }
-    }, [sourceId, isSourceProvider, hasInitialHTML, hasInitialCSS, hasInitialJS, initialHTML, initialCSS, initialJS, images, htmlPath, cssPath, jsPath]);
+    }, [sourceId, isSourceProvider, hasInitialHTML, hasInitialCSS, hasInitialJS, initialHTML, initialCSS, initialJS, images, htmlPath, cssPath, jsPath, store]);
 };

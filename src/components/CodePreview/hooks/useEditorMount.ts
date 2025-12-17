@@ -1,4 +1,4 @@
-import { useCallback, useMemo, MutableRefObject } from 'react';
+import { useCallback, MutableRefObject } from 'react';
 import type { editor } from 'monaco-editor';
 
 /** レイアウト更新の遅延時間 (ms) */

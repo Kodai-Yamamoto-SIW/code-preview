@@ -22,7 +22,7 @@ interface CodePreviewLayoutProps extends UseCodePreviewResult {
 }
 
 export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
-    refs,
+    elementRefs,
     state,
     visibility,
     layout,
@@ -34,6 +34,12 @@ export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
     jsPath,
     editorOptions,
 }) => {
+    const {
+        iframeRef,
+        containerRef,
+        editorsRowRef,
+    } = elementRefs;
+
     const editorsRowClassName = layout.isResizing ? `${styles.editorsRow} ${styles.isResizing}` : styles.editorsRow;
     const splitLayoutStyle: React.CSSProperties | undefined = visibility.showPreview ? undefined : { minHeight: 'auto' };
     const editorsRowStyle: React.CSSProperties | undefined = visibility.showPreview || visibility.showConsole ? undefined : { borderBottom: 'none' };
@@ -46,7 +52,7 @@ export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
                 </div>
             ) : null}
 
-            <div className={styles.splitLayout} ref={refs.containerRef} style={splitLayoutStyle}>
+            <div className={styles.splitLayout} ref={containerRef} style={splitLayoutStyle}>
                 {/* ファイル構造の表示 */}
                 {state.showFileStructure && (
                     <FileStructurePanel
@@ -58,7 +64,7 @@ export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
                 )}
 
                 {/* エディタセクション（上段） */}
-                <div className={editorsRowClassName} style={editorsRowStyle} ref={refs.editorsRowRef}>
+                <div className={editorsRowClassName} style={editorsRowStyle} ref={editorsRowRef}>
                     <Toolbar
                         resetProgress={handlers.resetProgress}
                         showLineNumbers={layout.showLineNumbers}
@@ -111,7 +117,7 @@ export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
                         <div className={styles.sectionHeader}>プレビュー</div>
                         <div className={styles.previewContainer}>
                             <PreviewPanel
-                                iframeRef={refs.iframeRef}
+                                iframeRef={iframeRef}
                                 iframeKey={state.iframeKey}
                                 iframeId={state.iframeId}
                                 htmlCode={state.htmlCode}

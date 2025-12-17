@@ -30,7 +30,22 @@ export const useEnsureNewlines = ({
     const cssEditor = editors.find(e => e.key === 'css');
     const jsEditor = editors.find(e => e.key === 'js');
 
-    if (htmlEditor) useEnsureNewline(htmlEditor.code, htmlEditor.setCode, htmlEditor.ref, htmlEditor.visible);
-    if (cssEditor) useEnsureNewline(cssEditor.code, cssEditor.setCode, cssEditor.ref, cssEditor.visible);
-    if (jsEditor) useEnsureNewline(jsEditor.code, jsEditor.setCode, jsEditor.ref, jsEditor.visible);
+    useEnsureNewline(
+        htmlEditor?.code,
+        htmlEditor?.setCode ?? (() => {}),
+        htmlEditor?.ref ?? { current: null },
+        htmlEditor?.visible ?? false
+    );
+    useEnsureNewline(
+        cssEditor?.code,
+        cssEditor?.setCode ?? (() => {}),
+        cssEditor?.ref ?? { current: null },
+        cssEditor?.visible ?? false
+    );
+    useEnsureNewline(
+        jsEditor?.code,
+        jsEditor?.setCode ?? (() => {}),
+        jsEditor?.ref ?? { current: null },
+        jsEditor?.visible ?? false
+    );
 };

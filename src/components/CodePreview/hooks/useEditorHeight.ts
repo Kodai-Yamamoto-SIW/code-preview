@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { editor } from 'monaco-editor';
 import { EditorDefinition } from '../types';
 
@@ -28,7 +28,7 @@ export const useEditorHeight = ({
 }: UseEditorHeightProps) => {
     const [editorHeight, setEditorHeight] = useState(minHeight);
 
-    const calculateEditorHeight = () => {
+    const calculateEditorHeight = useCallback(() => {
         const calculateEditorHeightByCode = (code: string, editorRef?: React.MutableRefObject<editor.IStandaloneCodeEditor | null>): number => {
             // 実際のエディタコンテンツの高さが取得できる場合はそれを使用
             if (editorRef && editorRef.current) {
@@ -64,17 +64,17 @@ export const useEditorHeight = ({
         const limitedEditorHeight = Math.min(finalEditorHeight, MAX_EDITOR_HEIGHT);
 
         setEditorHeight(limitedEditorHeight + 'px');
-    };
+    }, [editors, minHeight]);
 
-    const updateEditorHeight = () => {
+    const updateEditorHeight = useCallback(() => {
         setTimeout(() => {
             calculateEditorHeight();
         }, HEIGHT_UPDATE_DELAY_MS);
-    };
+    }, [calculateEditorHeight]);
 
     useEffect(() => {
         updateEditorHeight();
-    }, [editors, minHeight]);
+    }, [updateEditorHeight]);
 
     useEffect(() => {
         const handleResize = () => {
@@ -82,7 +82,7 @@ export const useEditorHeight = ({
         };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    }, [updateEditorHeight]);
 
     return { editorHeight, updateEditorHeight };
 };

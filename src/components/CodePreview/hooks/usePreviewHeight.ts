@@ -104,7 +104,7 @@ export const usePreviewHeight = ({
             }
             return () => iframe.removeEventListener('load', handleLoad);
         }
-    }, [showPreview, iframeRef.current, updatePreviewHeight]);
+    }, [showPreview, iframeRef, updatePreviewHeight]);
 
     // Code change - reset max height and recalculate
     useEffect(() => {

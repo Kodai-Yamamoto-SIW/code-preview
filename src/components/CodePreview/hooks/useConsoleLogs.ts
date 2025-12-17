@@ -20,6 +20,7 @@ export const useConsoleLogs = (iframeRef: React.RefObject<HTMLIFrameElement | nu
     // 依存関係が変更されたらログをクリア（コード変更時など）
     useEffect(() => {
         setConsoleLogs([]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, dependencies);
 
     useEffect(() => {

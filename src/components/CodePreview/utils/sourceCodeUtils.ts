@@ -1,5 +1,4 @@
 import { getStoredSource } from '../store';
-import { SourceCodeState } from '../types';
 
 interface ResolveSourceProps {
     sourceId?: string;
