@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { getStoredSource, setStoredSource, subscribeToStore, notifyStoreUpdate } from '../store';
-import { SourceCodeState } from '../types';
+import { useState, useRef, useCallback } from 'react';
 import { ensureTrailingNewline } from '../utils/stringUtils';
+import { resolveInitialSource } from '../utils/sourceCodeUtils';
+import { useGlobalSourceSync } from './useGlobalSourceSync';
+import { useGlobalSourceProvider } from './useGlobalSourceProvider';
 
 interface UseSourceCodeStoreProps {
     sourceId?: string;
@@ -15,108 +16,59 @@ interface UseSourceCodeStoreProps {
 }
 
 export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
-    const { sourceId, initialHTML, initialCSS, initialJS, images, htmlPath, cssPath, jsPath } = props;
-
-    const hasInitialHTML = initialHTML !== undefined;
-    const hasInitialCSS = initialCSS !== undefined;
-    const hasInitialJS = initialJS !== undefined;
-    const isSourceProvider = sourceId && (hasInitialHTML || hasInitialCSS || hasInitialJS);
-
-    // Initial resolution logic (runs on every render to get latest from store if needed)
-    let resolvedHTML = initialHTML;
-    let resolvedCSS = initialCSS;
-    let resolvedJS = initialJS;
-    let resolvedImages = images;
-    let resolvedHtmlPath = htmlPath;
-    let resolvedCssPath = cssPath;
-    let resolvedJsPath = jsPath;
-
-    if (sourceId) {
-        const stored = getStoredSource(sourceId);
-        if (stored) {
-            if (!hasInitialHTML && stored.html) resolvedHTML = stored.html;
-            if (!hasInitialCSS && stored.css) resolvedCSS = stored.css;
-            if (!hasInitialJS && stored.js) resolvedJS = stored.js;
-            if (!images && stored.images) resolvedImages = stored.images;
-            if (!htmlPath && stored.htmlPath) resolvedHtmlPath = stored.htmlPath;
-            if (!cssPath && stored.cssPath) resolvedCssPath = stored.cssPath;
-            if (!jsPath && stored.jsPath) resolvedJsPath = stored.jsPath;
-        }
-    }
+    const {
+        resolvedHTML,
+        resolvedCSS,
+        resolvedJS,
+        resolvedImages,
+        resolvedHtmlPath,
+        resolvedCssPath,
+        resolvedJsPath,
+        hasInitialHTML,
+        hasInitialCSS,
+        hasInitialJS
+    } = resolveInitialSource(props);
 
     const [htmlCode, setHtmlCode] = useState(ensureTrailingNewline(resolvedHTML || ''));
     const [cssCode, setCssCode] = useState(ensureTrailingNewline(resolvedCSS || ''));
     const [jsCode, setJsCode] = useState(ensureTrailingNewline(resolvedJS || ''));
 
-    // Refs to track if initial state is captured
     const initialStateRef = useRef({
         html: ensureTrailingNewline(resolvedHTML || ''),
         css: ensureTrailingNewline(resolvedCSS || ''),
         js: ensureTrailingNewline(resolvedJS || ''),
     });
-    const capturedInitialRef = useRef({
-        html: !!(sourceId ? hasInitialHTML : true),
-        css: !!(sourceId ? hasInitialCSS : true),
-        js: !!(sourceId ? hasInitialJS : true),
+
+    useGlobalSourceSync({
+        sourceId: props.sourceId,
+        setHtmlCode,
+        setCssCode,
+        setJsCode,
+        hasInitialHTML,
+        hasInitialCSS,
+        hasInitialJS,
+        initialStateRef
     });
 
-    // Subscribe to store updates
-    useEffect(() => {
-        if (!sourceId) return;
+    useGlobalSourceProvider({
+        sourceId: props.sourceId,
+        initialHTML: props.initialHTML,
+        initialCSS: props.initialCSS,
+        initialJS: props.initialJS,
+        images: props.images,
+        htmlPath: props.htmlPath,
+        cssPath: props.cssPath,
+        jsPath: props.jsPath,
+        hasInitialHTML,
+        hasInitialCSS,
+        hasInitialJS
+    });
 
-        const updateFromStore = () => {
-            const stored = getStoredSource(sourceId);
-            if (stored) {
-                if (!hasInitialHTML && stored.html) {
-                    const code = ensureTrailingNewline(stored.html);
-                    setHtmlCode(code);
-                    if (!capturedInitialRef.current.html) {
-                        initialStateRef.current.html = code;
-                        capturedInitialRef.current.html = true;
-                    }
-                }
-                if (!hasInitialCSS && stored.css) {
-                    const code = ensureTrailingNewline(stored.css);
-                    setCssCode(code);
-                    if (!capturedInitialRef.current.css) {
-                        initialStateRef.current.css = code;
-                        capturedInitialRef.current.css = true;
-                    }
-                }
-                if (!hasInitialJS && stored.js) {
-                    const code = ensureTrailingNewline(stored.js);
-                    setJsCode(code);
-                    if (!capturedInitialRef.current.js) {
-                        initialStateRef.current.js = code;
-                        capturedInitialRef.current.js = true;
-                    }
-                }
-            }
-        };
-
-        // Initial check
-        updateFromStore();
-
-        return subscribeToStore(sourceId, updateFromStore);
-    }, [sourceId, hasInitialHTML, hasInitialCSS, hasInitialJS]);
-
-    // Update store if provider
-    useEffect(() => {
-        if (sourceId && isSourceProvider) {
-            const existing = getStoredSource(sourceId) || { html: '', css: '', js: '' };
-            const updated: SourceCodeState = {
-                html: hasInitialHTML ? (initialHTML || '') : existing.html,
-                css: hasInitialCSS ? (initialCSS || '') : existing.css,
-                js: hasInitialJS ? (initialJS || '') : existing.js,
-                images: images || existing.images,
-                htmlPath: htmlPath || existing.htmlPath,
-                cssPath: cssPath || existing.cssPath,
-                jsPath: jsPath || existing.jsPath,
-            };
-            setStoredSource(sourceId, updated);
-            notifyStoreUpdate(sourceId);
-        }
-    }, [sourceId, isSourceProvider, hasInitialHTML, hasInitialCSS, hasInitialJS, initialHTML, initialCSS, initialJS, images, htmlPath, cssPath, jsPath]);
+    const resetCodes = useCallback(() => {
+        setHtmlCode(initialStateRef.current.html);
+        setCssCode(initialStateRef.current.css);
+        setJsCode(initialStateRef.current.js);
+    }, []);
 
     return {
         htmlCode, setHtmlCode,
@@ -130,11 +82,6 @@ export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
         resolvedCssPath,
         resolvedJsPath,
         initialStateRef,
-        ensureTrailingNewline,
-        resetCodes: useCallback(() => {
-            setHtmlCode(initialStateRef.current.html);
-            setCssCode(initialStateRef.current.css);
-            setJsCode(initialStateRef.current.js);
-        }, [])
+        resetCodes
     };
 };
