@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { editor } from 'monaco-editor';
+import { getEditorScrollWidth, computeNewPairPercents, MIN_EDITOR_WIDTH } from '../utils/resizeUtils';
 
 export type EditorKey = 'html' | 'css' | 'js';
 
@@ -24,7 +25,7 @@ interface UseEditorResizeProps {
     jsEditorRef: React.RefObject<editor.IStandaloneCodeEditor | null>;
 }
 
-const MIN_EDITOR_WIDTH = 200;
+
 const KEYBOARD_STEP_PERCENT = 5;
 
 export const useEditorResize = ({
@@ -42,41 +43,6 @@ export const useEditorResize = ({
     const dragStateRef = useRef<DragState | null>(null);
     const userResizedRef = useRef(false);
 
-    const getEditorScrollWidth = (editorRef: React.RefObject<editor.IStandaloneCodeEditor | null>): number => {
-        if (!editorRef.current) return 200;
-
-        try {
-            const editorInstance = editorRef.current;
-            const domNode = editorInstance.getDomNode();
-            if (!domNode) return 200;
-
-            const cursorTextElement = domNode.querySelector('.monaco-mouse-cursor-text') as HTMLElement;
-            if (cursorTextElement) {
-                const viewLines = cursorTextElement.querySelectorAll('.view-line');
-                let maxSpanWidth = 0;
-
-                for (let i = 0; i < viewLines.length; i++) {
-                    const viewLine = viewLines[i] as HTMLElement;
-                    const span = viewLine.querySelector('span');
-
-                    if (span) {
-                        const spanStyle = window.getComputedStyle(span);
-                        const spanWidth = parseFloat(spanStyle.width) || 0;
-                        maxSpanWidth = Math.max(maxSpanWidth, spanWidth);
-                    }
-                }
-
-                if (maxSpanWidth > 0) {
-                    return maxSpanWidth + 10 + 25; // 左右の余白を考慮
-                }
-            }
-
-            return 200; // 取得できない場合は最小幅
-        } catch {
-            return 200; // エラー時は最小幅
-        }
-    };
-
     const calculateOptimalWidths = (): { html: number; css: number; js: number } => {
         const container = containerRef.current;
         if (!container) {
@@ -91,17 +57,17 @@ export const useEditorResize = ({
         const containerWidth = container.offsetWidth || 800; // フォールバック値
 
         if (showHTMLEditor) {
-            const htmlNeededWidth = Math.max(getEditorScrollWidth(htmlEditorRef), minEditorWidth);
+            const htmlNeededWidth = Math.max(getEditorScrollWidth(htmlEditorRef.current), minEditorWidth);
             editors.push({ key: 'html', needed: htmlNeededWidth });
         }
 
         if (showCSSEditor) {
-            const cssNeededWidth = Math.max(getEditorScrollWidth(cssEditorRef), minEditorWidth);
+            const cssNeededWidth = Math.max(getEditorScrollWidth(cssEditorRef.current), minEditorWidth);
             editors.push({ key: 'css', needed: cssNeededWidth });
         }
 
         if (showJSEditor) {
-            const jsNeededWidth = Math.max(getEditorScrollWidth(jsEditorRef), minEditorWidth);
+            const jsNeededWidth = Math.max(getEditorScrollWidth(jsEditorRef.current), minEditorWidth);
             editors.push({ key: 'js', needed: jsNeededWidth });
         }
 
@@ -149,43 +115,6 @@ export const useEditorResize = ({
         const newWidths = calculateOptimalWidths();
         setSectionWidths(newWidths);
     }, [showHTMLEditor, showCSSEditor, showJSEditor]);
-
-    const computeNewPairPercents = (
-        containerWidth: number,
-        leftPercent: number,
-        rightPercent: number,
-        deltaPx: number
-    ): { left: number; right: number } | null => {
-        if (!containerWidth) {
-            return null;
-        }
-
-        const leftPx = (leftPercent / 100) * containerWidth;
-        const rightPx = (rightPercent / 100) * containerWidth;
-        const totalPx = leftPx + rightPx;
-
-        if (!Number.isFinite(totalPx) || totalPx <= 0) {
-            return null;
-        }
-
-        let newLeftPx = leftPx + deltaPx;
-        let newRightPx = rightPx - deltaPx;
-
-        const effectiveMin = Math.min(MIN_EDITOR_WIDTH, totalPx / 2);
-
-        if (newLeftPx < effectiveMin) {
-            newLeftPx = effectiveMin;
-            newRightPx = totalPx - newLeftPx;
-        } else if (newRightPx < effectiveMin) {
-            newRightPx = effectiveMin;
-            newLeftPx = totalPx - newRightPx;
-        }
-
-        return {
-            left: (newLeftPx / containerWidth) * 100,
-            right: (newRightPx / containerWidth) * 100,
-        };
-    };
 
     const handleMouseMove = useCallback((e: MouseEvent) => {
         if (!dragStateRef.current) return;

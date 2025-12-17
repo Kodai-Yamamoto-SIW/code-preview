@@ -6,6 +6,7 @@ import { useEditorHeight } from './hooks/useEditorHeight';
 import { usePreviewHeight } from './hooks/usePreviewHeight';
 import { useResetHandler } from './hooks/useResetHandler';
 import { useConsoleLogs } from './hooks/useConsoleLogs';
+import { useEnsureNewline } from './hooks/useEnsureNewline';
 import { FileStructurePanel } from './components/FileStructurePanel';
 import { Toolbar } from './components/Toolbar';
 import { EditorPanel, EditorConfig } from './components/EditorPanel';
@@ -210,51 +211,10 @@ export default function CodePreview({
         handleResetMouseLeave
     } = useResetHandler({ onReset: handleReset });
 
-    // HTML末尾改行保証
-    useEffect(() => {
-        if (!showHTMLEditor) return;
-        if (htmlCode && !htmlCode.endsWith('\n')) {
-            const newValue = htmlCode + '\n';
-            setHtmlCode(newValue);
-
-            if (htmlEditorRef.current) {
-                const editorInstance = htmlEditorRef.current;
-                const position = editorInstance.getPosition();
-                editorInstance.setValue(newValue);
-                if (position) editorInstance.setPosition(position);
-            }
-        }
-    }, [htmlCode, showHTMLEditor, setHtmlCode]);
-
-    // CSS末尾改行保証
-    useEffect(() => {
-        if (cssCode && !cssCode.endsWith('\n')) {
-            const newValue = cssCode + '\n';
-            setCssCode(newValue);
-
-            if (cssEditorRef.current) {
-                const editorInstance = cssEditorRef.current;
-                const position = editorInstance.getPosition();
-                editorInstance.setValue(newValue);
-                if (position) editorInstance.setPosition(position);
-            }
-        }
-    }, [cssCode, setCssCode]);
-
-    // JS末尾改行保証
-    useEffect(() => {
-        if (jsCode && !jsCode.endsWith('\n')) {
-            const newValue = jsCode + '\n';
-            setJsCode(newValue);
-
-            if (jsEditorRef.current) {
-                const editorInstance = jsEditorRef.current;
-                const position = editorInstance.getPosition();
-                editorInstance.setValue(newValue);
-                if (position) editorInstance.setPosition(position);
-            }
-        }
-    }, [jsCode, setJsCode]);
+    // 末尾改行保証
+    useEnsureNewline(htmlCode, setHtmlCode, htmlEditorRef, showHTMLEditor);
+    useEnsureNewline(cssCode, setCssCode, cssEditorRef, showCSSEditor || false);
+    useEnsureNewline(jsCode, setJsCode, jsEditorRef, showJSEditor || false);
 
     const handleHtmlChange = useCallback((value: string | undefined) => setHtmlCode(value || ''), [setHtmlCode]);
     const handleCssChange = useCallback((value: string | undefined) => setCssCode(value || ''), [setCssCode]);
