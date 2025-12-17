@@ -113,6 +113,12 @@ export default function CodePreview({
         jsCode
     });
 
+    const resizeTargets = React.useMemo(() => [
+        showHTMLEditor ? { key: 'html' as EditorKey, ref: htmlEditorRef } : null,
+        showCSSEditor ? { key: 'css' as EditorKey, ref: cssEditorRef } : null,
+        showJSEditor ? { key: 'js' as EditorKey, ref: jsEditorRef } : null,
+    ].filter((t): t is { key: EditorKey, ref: React.RefObject<editor.IStandaloneCodeEditor | null> } => t !== null), [showHTMLEditor, showCSSEditor, showJSEditor, htmlEditorRef, cssEditorRef, jsEditorRef]);
+
     const {
         sectionWidths,
         isResizing,
@@ -121,13 +127,8 @@ export default function CodePreview({
         updateSectionWidths,
         resetSectionWidthsToAuto
     } = useEditorResize({
-        showHTMLEditor,
-        showCSSEditor,
-        showJSEditor,
-        containerRef,
-        htmlEditorRef,
-        cssEditorRef,
-        jsEditorRef
+        resizeTargets,
+        containerRef
     });
 
     const {

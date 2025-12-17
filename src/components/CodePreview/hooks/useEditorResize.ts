@@ -15,27 +15,22 @@ type DragState = {
     restoreUserSelect: string;
 };
 
+export interface ResizeTarget {
+    key: EditorKey;
+    ref: React.RefObject<editor.IStandaloneCodeEditor | null>;
+}
+
 interface UseEditorResizeProps {
-    showHTMLEditor: boolean;
-    showCSSEditor: boolean;
-    showJSEditor: boolean;
+    resizeTargets: ResizeTarget[];
     containerRef: React.RefObject<HTMLDivElement | null>;
-    htmlEditorRef: React.RefObject<editor.IStandaloneCodeEditor | null>;
-    cssEditorRef: React.RefObject<editor.IStandaloneCodeEditor | null>;
-    jsEditorRef: React.RefObject<editor.IStandaloneCodeEditor | null>;
 }
 
 
 const KEYBOARD_STEP_PERCENT = 5;
 
 export const useEditorResize = ({
-    showHTMLEditor,
-    showCSSEditor,
-    showJSEditor,
-    containerRef,
-    htmlEditorRef,
-    cssEditorRef,
-    jsEditorRef
+    resizeTargets,
+    containerRef
 }: UseEditorResizeProps) => {
     const [sectionWidths, setSectionWidths] = useState<Record<EditorKey, number>>({ html: 50, css: 50, js: 0 });
     const [isResizing, setIsResizing] = useState(false);
@@ -43,33 +38,33 @@ export const useEditorResize = ({
     const dragStateRef = useRef<DragState | null>(null);
     const userResizedRef = useRef(false);
 
-    const calculateOptimalWidths = (): { html: number; css: number; js: number } => {
+    const calculateOptimalWidths = (): Record<EditorKey, number> => {
         const container = containerRef.current;
-        if (!container) {
-            if (showCSSEditor && showJSEditor) return { html: 34, css: 33, js: 33 };
-            if (showCSSEditor) return { html: 50, css: 50, js: 0 };
-            if (showJSEditor) return { html: 50, css: 0, js: 50 };
+        // 結果の初期化（全て0）
+        const resultWidths: Record<EditorKey, number> = { html: 0, css: 0, js: 0 };
+
+        // ターゲットがない場合はhtml: 100とする（または適当なデフォルト）
+        if (resizeTargets.length === 0) {
             return { html: 100, css: 0, js: 0 };
+        }
+
+        if (!container) {
+            // コンテナがない場合は単純に均等割り
+            const width = 100 / resizeTargets.length;
+            resizeTargets.forEach(t => {
+                resultWidths[t.key] = width;
+            });
+            return resultWidths;
         }
 
         const editors: Array<{ key: EditorKey; needed: number }> = [];
         const minEditorWidth = MIN_EDITOR_WIDTH;
         const containerWidth = container.offsetWidth || 800; // フォールバック値
 
-        if (showHTMLEditor) {
-            const htmlNeededWidth = Math.max(getEditorScrollWidth(htmlEditorRef.current), minEditorWidth);
-            editors.push({ key: 'html', needed: htmlNeededWidth });
-        }
-
-        if (showCSSEditor) {
-            const cssNeededWidth = Math.max(getEditorScrollWidth(cssEditorRef.current), minEditorWidth);
-            editors.push({ key: 'css', needed: cssNeededWidth });
-        }
-
-        if (showJSEditor) {
-            const jsNeededWidth = Math.max(getEditorScrollWidth(jsEditorRef.current), minEditorWidth);
-            editors.push({ key: 'js', needed: jsNeededWidth });
-        }
+        resizeTargets.forEach(target => {
+            const htmlNeededWidth = Math.max(getEditorScrollWidth(target.ref.current), minEditorWidth);
+            editors.push({ key: target.key, needed: htmlNeededWidth });
+        });
 
         const totalNeededWidth = editors.reduce((sum, e) => sum + e.needed, 0);
 
@@ -77,34 +72,31 @@ export const useEditorResize = ({
             const remainingWidth = containerWidth - minEditorWidth * editors.length;
 
             if (remainingWidth <= 0) {
-                if (editors.length === 3) return { html: 34, css: 33, js: 33 };
-                if (editors.length === 2) {
-                    // 2つのときは均等
-                    if (showHTMLEditor && showCSSEditor) return { html: 50, css: 50, js: 0 };
-                    if (showHTMLEditor && showJSEditor) return { html: 50, css: 0, js: 50 };
-                    // CSS + JS
-                    return { html: 0, css: 50, js: 50 };
-                }
-                return { html: 100, css: 0, js: 0 };
+                // スペース不足の場合は均等割り
+                const width = 100 / resizeTargets.length;
+                resizeTargets.forEach(t => {
+                    resultWidths[t.key] = width;
+                });
+                return resultWidths;
             }
 
-            const widthsPx: Record<EditorKey, number> = { html: 0, css: 0, js: 0 };
+            const widthsPx: Record<string, number> = {};
             editors.forEach(e => {
                 const ratio = e.needed / totalNeededWidth;
                 widthsPx[e.key] = minEditorWidth + remainingWidth * ratio;
             });
 
-            return {
-                html: (widthsPx.html / containerWidth) * 100,
-                css: (widthsPx.css / containerWidth) * 100,
-                js: (widthsPx.js / containerWidth) * 100,
-            };
-        } else {
-            const widths: Record<EditorKey, number> = { html: 0, css: 0, js: 0 };
+            const finalWidths = { ...resultWidths };
             editors.forEach(e => {
-                widths[e.key] = (e.needed / totalNeededWidth) * 100;
+                finalWidths[e.key] = (widthsPx[e.key] / containerWidth) * 100;
             });
-            return widths;
+            return finalWidths;
+        } else {
+            const finalWidths = { ...resultWidths };
+            editors.forEach(e => {
+                finalWidths[e.key] = (e.needed / totalNeededWidth) * 100;
+            });
+            return finalWidths;
         }
     };
 
@@ -114,7 +106,7 @@ export const useEditorResize = ({
         }
         const newWidths = calculateOptimalWidths();
         setSectionWidths(newWidths);
-    }, [showHTMLEditor, showCSSEditor, showJSEditor]);
+    }, [resizeTargets]);
 
     const handleMouseMove = useCallback((e: MouseEvent) => {
         if (!dragStateRef.current) return;
@@ -228,7 +220,7 @@ export const useEditorResize = ({
     useEffect(() => {
         userResizedRef.current = false;
         updateSectionWidths(true);
-    }, [showHTMLEditor, showCSSEditor, showJSEditor, updateSectionWidths]);
+    }, [resizeTargets, updateSectionWidths]);
 
     useEffect(() => {
         const handleResize = () => {
