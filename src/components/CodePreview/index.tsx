@@ -12,7 +12,8 @@ import { Toolbar } from './components/Toolbar';
 import { EditorPanel } from './components/EditorPanel';
 import { PreviewPanel } from './components/PreviewPanel';
 import { ConsolePanel } from './components/ConsolePanel';
-import { CodePreviewProps, EditorConfig, EditorKey } from './types';
+import { CodePreviewProps, EditorKey } from './types';
+import { useEditorConfigs } from './hooks/useEditorConfigs';
 import type { editor } from 'monaco-editor';
 
 
@@ -46,7 +47,6 @@ export default function CodePreview({
     const jsEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
     // State
-    const [showLineNumbers, setShowLineNumbers] = useState(false);
     const [showFileStructure, setShowFileStructure] = useState(!!fileStructureVisible);
     const [iframeKey, setIframeKey] = useState(0);
 
@@ -130,9 +130,17 @@ export default function CodePreview({
         jsEditorRef
     });
 
-    const toggleLineNumbers = useCallback(() => {
-        setShowLineNumbers(prev => !prev);
-    }, []);
+    const {
+        visibleEditorConfigs,
+        showLineNumbers,
+        toggleLineNumbers
+    } = useEditorConfigs({
+        htmlCode, cssCode, jsCode,
+        setHtmlCode, setCssCode, setJsCode,
+        showHTMLEditor, showCSSEditor, showJSEditor,
+        updateSectionWidths,
+        htmlEditorRef, cssEditorRef, jsEditorRef
+    });
 
     const toggleFileStructure = useCallback(() => {
         setShowFileStructure(prev => !prev);
@@ -169,61 +177,8 @@ export default function CodePreview({
     useEnsureNewline(cssCode, setCssCode, cssEditorRef, showCSSEditor || false);
     useEnsureNewline(jsCode, setJsCode, jsEditorRef, showJSEditor || false);
 
-    const handleHtmlChange = useCallback((value: string | undefined) => setHtmlCode(value || ''), [setHtmlCode]);
-    const handleCssChange = useCallback((value: string | undefined) => setCssCode(value || ''), [setCssCode]);
-    const handleJsChange = useCallback((value: string | undefined) => setJsCode(value || ''), [setJsCode]);
-
-    const handleHtmlEditorDidMount = useCallback((editorInstance: editor.IStandaloneCodeEditor) => {
-        htmlEditorRef.current = editorInstance;
-        setTimeout(updateSectionWidths, 100);
-        editorInstance.onDidChangeModelContent(() => setTimeout(updateSectionWidths, 50));
-    }, [updateSectionWidths]);
-
-    const handleCssEditorDidMount = useCallback((editorInstance: editor.IStandaloneCodeEditor) => {
-        cssEditorRef.current = editorInstance;
-        setTimeout(updateSectionWidths, 100);
-        editorInstance.onDidChangeModelContent(() => setTimeout(updateSectionWidths, 50));
-    }, [updateSectionWidths]);
-
-    const handleJsEditorDidMount = useCallback((editorInstance: editor.IStandaloneCodeEditor) => {
-        jsEditorRef.current = editorInstance;
-        setTimeout(updateSectionWidths, 100);
-        editorInstance.onDidChangeModelContent(() => setTimeout(updateSectionWidths, 50));
-    }, [updateSectionWidths]);
-
     const editorTheme = theme === 'dark' ? 'vs-dark' : 'light';
 
-    const editorConfigs: EditorConfig[] = [
-        {
-            key: 'html',
-            label: 'HTML',
-            language: 'html',
-            value: htmlCode,
-            onChange: handleHtmlChange,
-            onMount: handleHtmlEditorDidMount,
-            visible: showHTMLEditor,
-        },
-        {
-            key: 'css',
-            label: 'CSS',
-            language: 'css',
-            value: cssCode,
-            onChange: handleCssChange,
-            onMount: handleCssEditorDidMount,
-            visible: showCSSEditor,
-        },
-        {
-            key: 'js',
-            label: 'JavaScript',
-            language: 'javascript',
-            value: jsCode,
-            onChange: handleJsChange,
-            onMount: handleJsEditorDidMount,
-            visible: showJSEditor,
-        },
-    ];
-
-    const visibleEditorConfigs = editorConfigs.filter(config => config.visible);
     const editorsRowClassName = isResizing ? `${styles.editorsRow} ${styles.isResizing}` : styles.editorsRow;
 
     const splitLayoutStyle: React.CSSProperties | undefined = showPreview ? undefined : { minHeight: 'auto' };

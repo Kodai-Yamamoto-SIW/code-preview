@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getStoredSource, setStoredSource, subscribeToStore, notifyStoreUpdate } from '../store';
 import { SourceCodeState } from '../types';
+import { ensureTrailingNewline } from '../utils/stringUtils';
 
 interface UseSourceCodeStoreProps {
     sourceId?: string;
@@ -20,14 +21,6 @@ export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
     const hasInitialCSS = initialCSS !== undefined;
     const hasInitialJS = initialJS !== undefined;
     const isSourceProvider = sourceId && (hasInitialHTML || hasInitialCSS || hasInitialJS);
-
-    // Helper to ensure trailing newline
-    const ensureTrailingNewline = (code: string): string => {
-        if (code && !code.endsWith('\n')) {
-            return code + '\n';
-        }
-        return code;
-    };
 
     // Initial resolution logic (runs on every render to get latest from store if needed)
     let resolvedHTML = initialHTML;
