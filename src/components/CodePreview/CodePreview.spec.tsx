@@ -679,6 +679,87 @@ test.describe('CodePreview コンポーネントのテスト', () => {
         await expect(div).toHaveCSS('background-image', /url\("?.*\/static\/img\/real-bg\.png"?\)/);
     });
 
+    test('CSS: 正しい相対パス(../img/fence.png)のみが解決されること', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML="<div id='test-div'></div>"
+                initialCSS={`
+                    #test-div { 
+                        background-image: url('../img/fence.png');
+                        width: 100px; height: 100px;
+                    }
+                `}
+                cssPath="css/style.css"
+                images={{
+                    'img/fence.png': '/static/img/real-fence.png'
+                }}
+            />
+        );
+
+        const iframe = component.locator('iframe');
+        const frame = iframe.contentFrame();
+        const div = frame.locator('#test-div');
+        
+        await expect(div).toBeVisible();
+        // 正しいパスなので解決されるべき
+        await expect(div).toHaveCSS('background-image', /url\("?.*\/static\/img\/real-fence\.png"?\)/);
+    });
+
+    test('CSS: 誤った相対パス(img/fence.png)は解決されないこと', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML="<div id='test-div-wrong'></div>"
+                initialCSS={`
+                    #test-div-wrong { 
+                        background-image: url('img/fence.png');
+                        width: 100px; height: 100px;
+                    }
+                `}
+                cssPath="css/style.css"
+                images={{
+                    'img/fence.png': '/static/img/real-fence.png'
+                }}
+            />
+        );
+
+        const iframe = component.locator('iframe');
+        const frame = iframe.contentFrame();
+        const div = frame.locator('#test-div-wrong');
+        
+        await expect(div).toBeVisible();
+        
+        // 誤ったパスなので、imagesの置換が行われず、元のパスのままになるべき
+        const bgImage = await div.evaluate((el) => getComputedStyle(el).backgroundImage);
+        expect(bgImage).not.toContain('/static/img/real-fence.png');
+    });
+
+    test('CSS: 誤った相対パス(./img/fence.png)は解決されないこと', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML="<div id='test-div-wrong-2'></div>"
+                initialCSS={`
+                    #test-div-wrong-2 { 
+                        background-image: url('./img/fence.png');
+                        width: 100px; height: 100px;
+                    }
+                `}
+                cssPath="css/style.css"
+                images={{
+                    'img/fence.png': '/static/img/real-fence.png'
+                }}
+            />
+        );
+
+        const iframe = component.locator('iframe');
+        const frame = iframe.contentFrame();
+        const div = frame.locator('#test-div-wrong-2');
+        
+        await expect(div).toBeVisible();
+        
+        const bgImage = await div.evaluate((el) => getComputedStyle(el).backgroundImage);
+        expect(bgImage).not.toContain('/static/img/real-fence.png');
+    });
+
     test('HTML内の画像パスがimagesプロパティに基づいて解決されること', async ({ mount }) => {
         const component = await mount(
             <CodePreview

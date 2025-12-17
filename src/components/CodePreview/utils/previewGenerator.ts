@@ -60,18 +60,42 @@ export const escapeScriptEndTag = (code: string): string => {
     return code.replace(/<\/script>/gi, '<' + '/script>');
 };
 
+// パス解決ヘルパー
+const resolvePath = (baseFile: string, relativePath: string): string => {
+    const stack = baseFile.split('/');
+    stack.pop(); // ファイル名を除去してディレクトリにする
+
+    const parts = relativePath.split('/');
+    for (const part of parts) {
+        if (part === '.') continue;
+        if (part === '..') {
+            if (stack.length > 0) stack.pop();
+        } else {
+            stack.push(part);
+        }
+    }
+    return stack.join('/');
+};
+
 // CSS内のurl()をimagesマッピングで置換
-export const processCssCode = (code: string, resolvedImages?: { [path: string]: string }): string => {
+export const processCssCode = (code: string, resolvedImages?: { [path: string]: string }, cssPath?: string): string => {
     if (!resolvedImages) return code;
     return code.replace(/url\((['"]?)([^)'"]+)\1\)/g, (match, quote, path) => {
-        // 相対パス正規化（../img/〜, ./img/〜, img/〜 など）
-        let norm = path.replace(/^\.\//, '');
-        if (norm.startsWith('..')) {
-            // 例: ../img/fence.png → img/fence.png
-            norm = norm.replace(/^\.\.\//, '');
+        let resolvedPath = path;
+        
+        if (cssPath) {
+            // cssPathがある場合は、それに基づき相対パスを解決する
+            resolvedPath = resolvePath(cssPath, path);
+        } else {
+            // cssPathがない場合（インラインなど）は、従来の簡易的な正規化を行う（後方互換性のため）
+            // ただし、誤った解決を防ぐため、単純な置換は避けるべきだが、
+            // 既存の挙動を維持しつつ、明らかに誤ったパス（例: img/fence.png がルートにあると仮定）のみ許容する
+            // ここでは、cssPathがない＝ルートにあると仮定して処理する
+            resolvedPath = resolvePath('root.css', path);
         }
-        if (resolvedImages[norm]) {
-            return `url(${quote}${resolvedImages[norm]}${quote})`;
+
+        if (resolvedImages[resolvedPath]) {
+            return `url(${quote}${resolvedImages[resolvedPath]}${quote})`;
         }
         return match;
     });
@@ -207,7 +231,7 @@ export const generatePreviewDocument = (options: PreviewGeneratorOptions): strin
 
     const { processed: processedHtmlRaw, jsInjected } = processHtmlCode(htmlCode, imageBasePath, targetCssPath, cssCode, targetJsPath, jsCode, resolvedImages);
     const processedHtml = escapeScriptEndTag(processedHtmlRaw);
-    const processedCss = processCssCode(cssCode, resolvedImages);
+    const processedCss = processCssCode(cssCode, resolvedImages, targetCssPath);
     const styleTag = processedCss ? `<style>\n${processedCss}\n</style>` : '';
     const extraJs = (!jsInjected && jsCode) ? `<script>\n${escapeScriptEndTag(jsCode)}\n</script>` : '';
     const consoleScriptTag = (showPreview || showConsole || showHTMLEditor || showJSEditor)
