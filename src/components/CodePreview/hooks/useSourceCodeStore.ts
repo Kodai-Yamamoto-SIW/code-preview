@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getStoredSource, setStoredSource, subscribeToStore, notifyStoreUpdate } from '../store';
 import { SourceCodeState } from '../types';
 import { ensureTrailingNewline } from '../utils/stringUtils';
@@ -130,6 +130,11 @@ export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
         resolvedCssPath,
         resolvedJsPath,
         initialStateRef,
-        ensureTrailingNewline
+        ensureTrailingNewline,
+        resetCodes: useCallback(() => {
+            setHtmlCode(initialStateRef.current.html);
+            setCssCode(initialStateRef.current.css);
+            setJsCode(initialStateRef.current.js);
+        }, [])
     };
 };

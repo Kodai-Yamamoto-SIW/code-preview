@@ -14,6 +14,7 @@ import { PreviewPanel } from './components/PreviewPanel';
 import { ConsolePanel } from './components/ConsolePanel';
 import { CodePreviewProps, EditorKey } from './types';
 import { useEditorConfigs } from './hooks/useEditorConfigs';
+import { resolveVisibility } from './utils/visibility';
 import type { editor } from 'monaco-editor';
 
 
@@ -63,6 +64,7 @@ export default function CodePreview({
         resolvedCssPath,
         resolvedJsPath,
         initialStateRef,
+        resetCodes
     } = useSourceCodeStore({
         sourceId,
         initialHTML,
@@ -73,14 +75,6 @@ export default function CodePreview({
         cssPath,
         jsPath
     });
-
-    // Visibility Logic
-    const resolveVisibility = (autoVisible: boolean, override?: boolean): boolean => {
-        if (typeof override === 'boolean') {
-            return override;
-        }
-        return autoVisible;
-    };
 
     const { consoleLogs, setConsoleLogs } = useConsoleLogs(iframeRef, [jsCode, htmlCode]);
 
@@ -150,9 +144,7 @@ export default function CodePreview({
     // リセット関数
     const handleReset = useCallback(() => {
         // 編集したコードを初期状態に戻す
-        setHtmlCode(initialStateRef.current.html);
-        setCssCode(initialStateRef.current.css);
-        setJsCode(initialStateRef.current.js);
+        resetCodes();
 
         // コンソールログをクリア
         setConsoleLogs([]);
@@ -164,7 +156,7 @@ export default function CodePreview({
         setTimeout(() => {
             updatePreviewHeight();
         }, 100);
-    }, [initialStateRef, setHtmlCode, setCssCode, setJsCode, setConsoleLogs, updatePreviewHeight]);
+    }, [resetCodes, setConsoleLogs, updatePreviewHeight]);
 
     const {
         resetProgress,
@@ -252,8 +244,10 @@ export default function CodePreview({
                 </div>
 
                 {/* プレビュー（下段） */}
-                {showPreview ? (
-                    <div className={styles.previewSection}>
+                {/* プレビュー（下段） */}
+                {/* 常にレンダリングしてiframeの状態を維持するが、非表示時はdisplay: noneにする */}
+                {(showPreview || showHTMLEditor || showCSSEditor || showJSEditor || showConsole) && (
+                    <div className={styles.previewSection} style={{ display: showPreview ? 'flex' : 'none' }}>
                         <div className={styles.sectionHeader}>プレビュー</div>
                         <div className={styles.previewContainer}>
                             <PreviewPanel
@@ -279,32 +273,6 @@ export default function CodePreview({
                             />
                         </div>
                     </div>
-                ) : (
-                    (showHTMLEditor || showCSSEditor || showJSEditor || showConsole) && (
-                        <div style={{ display: 'none' }}>
-                            <PreviewPanel
-                                iframeRef={iframeRef}
-                                iframeKey={iframeKey}
-                                htmlCode={htmlCode}
-                                cssCode={cssCode}
-                                jsCode={jsCode}
-                                showPreview={showPreview}
-                                showConsole={showConsole}
-                                showHTMLEditor={showHTMLEditor}
-                                showJSEditor={showJSEditor}
-                                imageBasePath={imageBasePath}
-                                resolvedImages={resolvedImages}
-                                cssPath={cssPath}
-                                jsPath={jsPath}
-                                resolvedHtmlPath={resolvedHtmlPath}
-                                resolvedCssPath={resolvedCssPath}
-                                resolvedJsPath={resolvedJsPath}
-                                previewHeight={previewHeight}
-                                minHeight={minHeight}
-                                visible={false}
-                            />
-                        </div>
-                    )
                 )}
                 {showConsole && (
                     <ConsolePanel logs={consoleLogs} />
