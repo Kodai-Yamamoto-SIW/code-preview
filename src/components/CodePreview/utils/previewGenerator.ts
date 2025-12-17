@@ -1,4 +1,4 @@
-import { CONSOLE_INTERCEPT_SCRIPT } from './consoleScript';
+import { CONSOLE_INTERCEPT_SCRIPT, HEIGHT_OBSERVER_SCRIPT } from './consoleScript';
 import { processCssCode } from './cssProcessor';
 import { processHtmlCode, escapeScriptEndTag } from './htmlProcessor';
 
@@ -49,6 +49,10 @@ export const generatePreviewDocument = (options: PreviewGeneratorOptions): strin
     const consoleScriptTag = (showPreview || showConsole || showHTMLEditor || showJSEditor)
         ? `<script data-code-preview-internal="true">${CONSOLE_INTERCEPT_SCRIPT}</script>`
         : '';
+    // Height observer script to notify parent when content height changes dynamically
+    const heightObserverScriptTag = showPreview
+        ? `<script data-code-preview-internal="true">${HEIGHT_OBSERVER_SCRIPT}</script>`
+        : '';
 
     return `
 <!DOCTYPE html>
@@ -58,6 +62,7 @@ export const generatePreviewDocument = (options: PreviewGeneratorOptions): strin
 <meta name="viewport" content="width=device-width, initial-scale=1">
 ${styleTag}
 ${consoleScriptTag}
+${heightObserverScriptTag}
 </head>
 <body>
 ${processedHtml}

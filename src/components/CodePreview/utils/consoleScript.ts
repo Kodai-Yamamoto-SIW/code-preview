@@ -164,3 +164,68 @@ window.onerror = function (msg, url, line, col, error) {
 };
 })();
 `;
+
+// Script to observe height changes in iframe content and notify parent
+export const HEIGHT_OBSERVER_SCRIPT = `
+(function () {
+if (!window.parent) return;
+
+let lastReportedHeight = 0;
+
+const getDocumentHeight = () => {
+    return Math.max(
+        document.body ? document.body.scrollHeight : 0,
+        document.body ? document.body.offsetHeight : 0,
+        document.documentElement ? document.documentElement.clientHeight : 0,
+        document.documentElement ? document.documentElement.scrollHeight : 0,
+        document.documentElement ? document.documentElement.offsetHeight : 0
+    );
+};
+
+const reportHeight = () => {
+    const currentHeight = getDocumentHeight();
+    if (currentHeight > lastReportedHeight) {
+        lastReportedHeight = currentHeight;
+        try {
+            window.parent.postMessage({ type: 'codePreviewHeightChange', height: currentHeight }, '*');
+        } catch (error) {
+            // noop
+        }
+    }
+};
+
+// Observe DOM mutations
+const mutationObserver = new MutationObserver(() => {
+    setTimeout(reportHeight, 0);
+});
+
+// Observe element resizes
+const resizeObserver = new ResizeObserver(() => {
+    setTimeout(reportHeight, 0);
+});
+
+const startObserving = () => {
+    mutationObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true
+    });
+    
+    resizeObserver.observe(document.body);
+    resizeObserver.observe(document.documentElement);
+    
+    // Initial report
+    reportHeight();
+};
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startObserving);
+} else {
+    startObserving();
+}
+
+// Also report on load (for images, etc.)
+window.addEventListener('load', reportHeight);
+})();
+`;

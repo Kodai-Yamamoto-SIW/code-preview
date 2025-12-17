@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { EditorDefinition } from '../types';
 
 interface UsePreviewHeightProps {
@@ -8,6 +8,8 @@ interface UsePreviewHeightProps {
     editors: EditorDefinition[];
 }
 
+const MAX_PREVIEW_HEIGHT = 800;
+
 export const usePreviewHeight = ({
     minHeight,
     showPreview,
@@ -15,8 +17,15 @@ export const usePreviewHeight = ({
     editors
 }: UsePreviewHeightProps) => {
     const [previewHeight, setPreviewHeight] = useState(minHeight);
+    // Track the maximum height ever reached (only grows, never shrinks)
+    const maxHeightRef = useRef(parseInt(minHeight));
 
-    const calculatePreviewHeight = () => {
+    // Reset max height when code changes (new iframe content)
+    const resetMaxHeight = useCallback(() => {
+        maxHeightRef.current = parseInt(minHeight);
+    }, [minHeight]);
+
+    const calculatePreviewHeight = useCallback(() => {
         const iframe = iframeRef.current;
         let pHeight = parseInt(minHeight);
 
@@ -38,18 +47,41 @@ export const usePreviewHeight = ({
             }
         }
 
-        const finalPreviewHeight = Math.max(pHeight, parseInt(minHeight));
-        const limitedPreviewHeight = Math.min(finalPreviewHeight, 800);
+        // Only grow, never shrink - update maxHeightRef if we have a larger height
+        if (pHeight > maxHeightRef.current) {
+            maxHeightRef.current = pHeight;
+        }
+
+        const finalPreviewHeight = Math.max(maxHeightRef.current, parseInt(minHeight));
+        const limitedPreviewHeight = Math.min(finalPreviewHeight, MAX_PREVIEW_HEIGHT);
 
         setPreviewHeight(limitedPreviewHeight + 'px');
-    };
+    }, [iframeRef, minHeight]);
 
-    const updatePreviewHeight = () => {
+    const updatePreviewHeight = useCallback(() => {
         if (!showPreview) return;
         setTimeout(() => {
             calculatePreviewHeight();
         }, 100);
-    };
+    }, [showPreview, calculatePreviewHeight]);
+
+    // Handle height change messages from iframe
+    useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data?.type === 'codePreviewHeightChange' && typeof event.data.height === 'number') {
+                const newHeight = event.data.height;
+                // Only grow, never shrink
+                if (newHeight > maxHeightRef.current) {
+                    maxHeightRef.current = newHeight;
+                    const limitedHeight = Math.min(newHeight, MAX_PREVIEW_HEIGHT);
+                    setPreviewHeight(limitedHeight + 'px');
+                }
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, []);
 
     // Initial load and resize
     useEffect(() => {
@@ -68,14 +100,15 @@ export const usePreviewHeight = ({
             }
             return () => iframe.removeEventListener('load', handleLoad);
         }
-    }, [showPreview, iframeRef.current]); // Added iframeRef.current dependency
+    }, [showPreview, iframeRef.current, updatePreviewHeight]);
 
-    // Code change
+    // Code change - reset max height and recalculate
     useEffect(() => {
         if (showPreview) {
+            resetMaxHeight();
             updatePreviewHeight();
         }
-    }, [editors, minHeight, showPreview]);
+    }, [editors, minHeight, showPreview, resetMaxHeight, updatePreviewHeight]);
 
     // Window resize
     useEffect(() => {
@@ -84,7 +117,7 @@ export const usePreviewHeight = ({
         };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, [showPreview]);
+    }, [updatePreviewHeight]);
 
     return { previewHeight, updatePreviewHeight };
 };
