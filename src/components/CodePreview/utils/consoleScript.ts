@@ -172,14 +172,59 @@ if (!window.parent) return;
 
 let lastReportedHeight = 0;
 
+// Calculate the maximum height considering all elements including fixed/absolute positioned ones
+const getMaxElementHeight = () => {
+    let maxHeight = 0;
+    
+    // Get all elements in the document
+    const allElements = document.querySelectorAll('*');
+    
+    for (let i = 0; i < allElements.length; i++) {
+        const el = allElements[i];
+        
+        // Skip script and style elements
+        if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'LINK') continue;
+        
+        // Skip hidden elements
+        const style = window.getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden') continue;
+        
+        const rect = el.getBoundingClientRect();
+        
+        // For fixed/absolute elements, use their bottom position
+        if (style.position === 'fixed' || style.position === 'absolute') {
+            // For fixed elements, rect.bottom is relative to viewport
+            // For absolute elements within scrolled containers, we need rect.bottom + scroll
+            const bottomPos = rect.bottom + window.scrollY;
+            if (bottomPos > maxHeight) {
+                maxHeight = bottomPos;
+            }
+        } else {
+            // For normal flow elements
+            const bottomPos = rect.bottom + window.scrollY;
+            if (bottomPos > maxHeight) {
+                maxHeight = bottomPos;
+            }
+        }
+    }
+    
+    return maxHeight;
+};
+
 const getDocumentHeight = () => {
-    return Math.max(
+    // Get standard document height measures
+    const standardHeight = Math.max(
         document.body ? document.body.scrollHeight : 0,
         document.body ? document.body.offsetHeight : 0,
         document.documentElement ? document.documentElement.clientHeight : 0,
         document.documentElement ? document.documentElement.scrollHeight : 0,
         document.documentElement ? document.documentElement.offsetHeight : 0
     );
+    
+    // Also check all elements for fixed/absolute positioned content
+    const elementHeight = getMaxElementHeight();
+    
+    return Math.max(standardHeight, elementHeight);
 };
 
 const reportHeight = () => {
@@ -194,14 +239,21 @@ const reportHeight = () => {
     }
 };
 
+// Debounce to avoid excessive calculations
+let debounceTimer = null;
+const debouncedReportHeight = () => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(reportHeight, 50);
+};
+
 // Observe DOM mutations
 const mutationObserver = new MutationObserver(() => {
-    setTimeout(reportHeight, 0);
+    debouncedReportHeight();
 });
 
 // Observe element resizes
 const resizeObserver = new ResizeObserver(() => {
-    setTimeout(reportHeight, 0);
+    debouncedReportHeight();
 });
 
 const startObserving = () => {
@@ -227,5 +279,8 @@ if (document.readyState === 'loading') {
 
 // Also report on load (for images, etc.)
 window.addEventListener('load', reportHeight);
+
+// Periodically check for changes that might be missed (e.g., CSS animations, transitions)
+setInterval(reportHeight, 500);
 })();
 `;

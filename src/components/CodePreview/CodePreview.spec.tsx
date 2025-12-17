@@ -845,3 +845,153 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     });
 });
 
+test.describe('動的な高さ変更のテスト', () => {
+
+    test('JavaScriptで要素が追加された場合、プレビュー領域の高さが広がること', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML={`<div id="container"></div>
+<button id="add-btn" onclick="
+    for(let i = 0; i < 10; i++) {
+        const div = document.createElement('div');
+        div.textContent = 'Item ' + i;
+        div.style.padding = '20px';
+        div.style.margin = '10px';
+        div.style.background = '#eee';
+        document.getElementById('container').appendChild(div);
+    }
+">要素を追加</button>`}
+                minHeight="100px"
+            />
+        );
+
+        const iframe = component.locator('iframe');
+        await expect(iframe).toBeVisible();
+
+        // 初期の高さを取得
+        const initialHeight = await iframe.evaluate((el) => el.offsetHeight);
+
+        // iframe内のボタンをクリックして要素を追加
+        const frame = iframe.contentFrame();
+        const addButton = frame.locator('#add-btn');
+        await expect(addButton).toBeVisible({ timeout: 10000 });
+        await addButton.click();
+
+        // 高さが広がることを確認（ポーリングで確認）
+        await expect.poll(async () => {
+            return await iframe.evaluate((el) => el.offsetHeight);
+        }, { timeout: 5000 }).toBeGreaterThan(initialHeight);
+    });
+
+    test('モーダルウィンドウのような固定配置要素が表示された場合、高さが広がること', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML={`<div style="text-align: center;">
+    <button id="open-modal" style="font-size: 24px; padding: 10px 20px;">モーダルを開く</button>
+</div>
+<div id="modal" style="display: none; position: fixed; top: 50px; left: 50px; right: 50px; padding: 40px; background: white; border: 2px solid #333; z-index: 1000;">
+    <h2 style="margin: 0 0 20px 0;">モーダルタイトル</h2>
+    <p>これはモーダルウィンドウの内容です。</p>
+    <p>固定配置の要素もプレビュー領域に収まるように高さが調整されます。</p>
+    <div style="height: 200px; background: #f0f0f0; margin: 20px 0;"></div>
+    <button id="close-modal">閉じる</button>
+</div>`}
+                initialJS={`
+document.getElementById('open-modal').addEventListener('click', function() {
+    document.getElementById('modal').style.display = 'block';
+});
+document.getElementById('close-modal').addEventListener('click', function() {
+    document.getElementById('modal').style.display = 'none';
+});
+`}
+                minHeight="100px"
+            />
+        );
+
+        const iframe = component.locator('iframe');
+        await expect(iframe).toBeVisible();
+
+        // 初期の高さを取得
+        const initialHeight = await iframe.evaluate((el) => el.offsetHeight);
+
+        // iframe内のボタンをクリックしてモーダルを開く
+        const frame = iframe.contentFrame();
+        const openButton = frame.locator('#open-modal');
+        await expect(openButton).toBeVisible({ timeout: 10000 });
+        await openButton.click();
+
+        // モーダルが表示されるのを待つ
+        await expect(frame.locator('#modal')).toBeVisible();
+
+        // 高さが広がることを確認（ポーリングで確認）
+        await expect.poll(async () => {
+            return await iframe.evaluate((el) => el.offsetHeight);
+        }, { timeout: 5000 }).toBeGreaterThan(initialHeight);
+    });
+
+    test('高さは狭まる方向には調整されないこと', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML={`<div id="content" style="height: 300px; background: #eee;">
+    大きなコンテンツ
+</div>
+<button id="shrink-btn" onclick="document.getElementById('content').style.height = '50px';">縮小</button>`}
+                minHeight="100px"
+            />
+        );
+
+        const iframe = component.locator('iframe');
+        await expect(iframe).toBeVisible();
+
+        // コンテンツが描画されるのを待つ
+        const frame = iframe.contentFrame();
+        await expect(frame.locator('#content')).toBeVisible({ timeout: 10000 });
+
+        // 初期の高さを取得（コンテンツが300pxなので、それ以上になっているはず）
+        await expect.poll(async () => {
+            return await iframe.evaluate((el) => el.offsetHeight);
+        }, { timeout: 5000 }).toBeGreaterThanOrEqual(300);
+
+        const heightBeforeShrink = await iframe.evaluate((el) => el.offsetHeight);
+
+        // コンテンツを縮小
+        const shrinkButton = frame.locator('#shrink-btn');
+        await shrinkButton.click();
+
+        // 少し待つ
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 高さが変わらないことを確認（狭まらない）
+        const heightAfterShrink = await iframe.evaluate((el) => el.offsetHeight);
+        expect(heightAfterShrink).toBeGreaterThanOrEqual(heightBeforeShrink);
+    });
+
+    test('遅延で要素が追加された場合も高さが広がること', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML={`<div id="container"></div>`}
+                initialJS={`
+setTimeout(function() {
+    const div = document.createElement('div');
+    div.style.height = '400px';
+    div.style.background = 'lightblue';
+    div.textContent = '遅延追加された要素';
+    document.getElementById('container').appendChild(div);
+}, 500);
+`}
+                minHeight="100px"
+            />
+        );
+
+        const iframe = component.locator('iframe');
+        await expect(iframe).toBeVisible();
+
+        // 初期の高さを取得
+        const initialHeight = await iframe.evaluate((el) => el.offsetHeight);
+
+        // 遅延追加後に高さが広がることを確認
+        await expect.poll(async () => {
+            return await iframe.evaluate((el) => el.offsetHeight);
+        }, { timeout: 5000 }).toBeGreaterThan(initialHeight);
+    });
+});
