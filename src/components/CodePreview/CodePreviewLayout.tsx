@@ -8,6 +8,8 @@ import { ConsolePanel } from './components/ConsolePanel';
 import { EditorKey } from './types';
 import { useCodePreview } from './hooks/useCodePreview';
 
+import type { editor } from 'monaco-editor';
+
 type UseCodePreviewResult = ReturnType<typeof useCodePreview>;
 
 interface CodePreviewLayoutProps extends UseCodePreviewResult {
@@ -16,6 +18,7 @@ interface CodePreviewLayoutProps extends UseCodePreviewResult {
     imageBasePath?: string;
     cssPath?: string;
     jsPath?: string;
+    editorOptions?: editor.IEditorConstructionOptions;
 }
 
 export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
@@ -29,6 +32,7 @@ export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
     imageBasePath,
     cssPath,
     jsPath,
+    editorOptions,
 }) => {
     const editorsRowClassName = layout.isResizing ? `${styles.editorsRow} ${styles.isResizing}` : styles.editorsRow;
     const splitLayoutStyle: React.CSSProperties | undefined = visibility.showPreview ? undefined : { minHeight: 'auto' };
@@ -77,6 +81,7 @@ export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
                                     height={layout.editorHeight}
                                     theme={state.editorTheme}
                                     showLineNumbers={layout.showLineNumbers}
+                                    options={editorOptions}
                                 />
                                 {nextConfig ? (
                                     <div

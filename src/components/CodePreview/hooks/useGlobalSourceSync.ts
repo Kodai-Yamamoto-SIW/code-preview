@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { getStoredSource, subscribeToStore } from '../store';
+import { ISourceCodeStore } from '../store';
 import { ensureTrailingNewline } from '../utils/stringUtils';
 
 interface UseGlobalSourceSyncProps {
     sourceId?: string;
+    store: ISourceCodeStore;
     setHtmlCode: (code: string) => void;
     setCssCode: (code: string) => void;
     setJsCode: (code: string) => void;
@@ -15,6 +16,7 @@ interface UseGlobalSourceSyncProps {
 
 export const useGlobalSourceSync = ({
     sourceId,
+    store,
     setHtmlCode,
     setCssCode,
     setJsCode,
@@ -33,7 +35,7 @@ export const useGlobalSourceSync = ({
         if (!sourceId) return;
 
         const updateFromStore = () => {
-            const stored = getStoredSource(sourceId);
+            const stored = store.get(sourceId);
             if (stored) {
                 if (!hasInitialHTML && stored.html) {
                     const code = ensureTrailingNewline(stored.html);
@@ -65,6 +67,6 @@ export const useGlobalSourceSync = ({
         // Initial check
         updateFromStore();
 
-        return subscribeToStore(sourceId, updateFromStore);
-    }, [sourceId, hasInitialHTML, hasInitialCSS, hasInitialJS, setHtmlCode, setCssCode, setJsCode, initialStateRef]);
+        return store.subscribe(sourceId, updateFromStore);
+    }, [sourceId, store, hasInitialHTML, hasInitialCSS, hasInitialJS, setHtmlCode, setCssCode, setJsCode, initialStateRef]);
 };

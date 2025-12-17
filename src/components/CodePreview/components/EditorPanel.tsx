@@ -1,5 +1,5 @@
-import React from 'react';
-import Editor from '@monaco-editor/react';
+import React, { useMemo } from 'react';
+import Editor, { EditorProps } from '@monaco-editor/react';
 import styles from '../styles.module.css';
 
 import { EditorConfig } from '../types';
@@ -10,15 +10,35 @@ interface EditorPanelProps {
     height: string;
     theme: string;
     showLineNumbers: boolean;
+    options?: EditorProps['options'];
 }
+
+const DEFAULT_EDITOR_OPTIONS: EditorProps['options'] = {
+    minimap: { enabled: false },
+    fontSize: 14,
+    folding: false,
+    padding: { top: 5, bottom: 5 },
+    roundedSelection: false,
+    wordWrap: 'off',
+    tabSize: 2,
+    insertSpaces: true,
+    scrollBeyondLastLine: false,
+};
 
 export const EditorPanel: React.FC<EditorPanelProps> = ({
     config,
     width,
     height,
     theme,
-    showLineNumbers
+    showLineNumbers,
+    options
 }) => {
+    const mergedOptions = useMemo(() => ({
+        ...DEFAULT_EDITOR_OPTIONS,
+        ...options,
+        lineNumbers: showLineNumbers ? 'on' : 'off',
+    } as EditorProps['options']), [showLineNumbers, options]);
+
     return (
         <div className={styles.editorSection} style={{ width: `${width}%` }}>
             <div className={styles.sectionHeader}>{config.label}</div>
@@ -30,18 +50,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                     onChange={config.onChange}
                     onMount={config.onMount}
                     theme={theme}
-                    options={{
-                        minimap: { enabled: false },
-                        fontSize: 14,
-                        lineNumbers: showLineNumbers ? 'on' : 'off',
-                        folding: false,
-                        padding: { top: 5, bottom: 5 },
-                        roundedSelection: false,
-                        wordWrap: 'off',
-                        tabSize: 2,
-                        insertSpaces: true,
-                        scrollBeyondLastLine: false,
-                    }}
+                    options={mergedOptions}
                 />
             </div>
         </div>

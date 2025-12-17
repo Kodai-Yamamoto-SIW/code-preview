@@ -1,8 +1,15 @@
 import { SourceCodeState } from './types';
 
-type StoreListener = () => void;
+export type StoreListener = () => void;
 
-export class SourceCodeStore {
+export interface ISourceCodeStore {
+    get(sourceId: string): SourceCodeState | undefined;
+    set(sourceId: string, state: SourceCodeState): void;
+    subscribe(sourceId: string, listener: StoreListener): () => void;
+    notify(sourceId: string): void;
+}
+
+export class SourceCodeStore implements ISourceCodeStore {
     private store = new Map<string, SourceCodeState>();
     private listeners = new Map<string, Set<StoreListener>>();
 

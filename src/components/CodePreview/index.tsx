@@ -10,7 +10,8 @@ export default function CodePreview(props: CodePreviewProps) {
         minHeight = '200px',
         imageBasePath,
         cssPath,
-        jsPath
+        jsPath,
+        editorOptions
     } = props;
 
     return (
@@ -21,6 +22,7 @@ export default function CodePreview(props: CodePreviewProps) {
             imageBasePath={imageBasePath}
             cssPath={cssPath}
             jsPath={jsPath}
+            editorOptions={editorOptions}
         />
     );
 }

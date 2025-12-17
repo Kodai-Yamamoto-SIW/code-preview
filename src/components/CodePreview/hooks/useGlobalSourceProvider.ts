@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { getStoredSource, setStoredSource, notifyStoreUpdate } from '../store';
+import { ISourceCodeStore } from '../store';
 import { SourceCodeState } from '../types';
 
 interface UseGlobalSourceProviderProps {
     sourceId?: string;
+    store: ISourceCodeStore;
     initialHTML?: string;
     initialCSS?: string;
     initialJS?: string;
@@ -19,6 +20,7 @@ interface UseGlobalSourceProviderProps {
 export const useGlobalSourceProvider = (props: UseGlobalSourceProviderProps) => {
     const {
         sourceId,
+        store,
         initialHTML,
         initialCSS,
         initialJS,
@@ -35,7 +37,7 @@ export const useGlobalSourceProvider = (props: UseGlobalSourceProviderProps) => 
 
     useEffect(() => {
         if (sourceId && isSourceProvider) {
-            const existing = getStoredSource(sourceId) || { html: '', css: '', js: '' };
+            const existing = store.get(sourceId) || { html: '', css: '', js: '' };
             const updated: SourceCodeState = {
                 html: hasInitialHTML ? (initialHTML || '') : existing.html,
                 css: hasInitialCSS ? (initialCSS || '') : existing.css,
@@ -45,8 +47,8 @@ export const useGlobalSourceProvider = (props: UseGlobalSourceProviderProps) => 
                 cssPath: cssPath || existing.cssPath,
                 jsPath: jsPath || existing.jsPath,
             };
-            setStoredSource(sourceId, updated);
-            notifyStoreUpdate(sourceId);
+            store.set(sourceId, updated);
+            store.notify(sourceId);
         }
     }, [sourceId, isSourceProvider, hasInitialHTML, hasInitialCSS, hasInitialJS, initialHTML, initialCSS, initialJS, images, htmlPath, cssPath, jsPath]);
 };

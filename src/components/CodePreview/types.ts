@@ -50,6 +50,10 @@ export interface CodePreviewProps {
      * 例: { "img/sample.png": "/img/sample.png" }
      */
     images?: { [path: string]: string };
+    /**
+     * Monaco Editorのオプション
+     */
+    editorOptions?: editor.IEditorConstructionOptions;
 }
 
 export interface EditorConfig {

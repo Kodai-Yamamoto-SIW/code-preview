@@ -3,9 +3,11 @@ import { ensureTrailingNewline } from '../utils/stringUtils';
 import { resolveInitialSource } from '../utils/sourceCodeUtils';
 import { useGlobalSourceSync } from './useGlobalSourceSync';
 import { useGlobalSourceProvider } from './useGlobalSourceProvider';
+import { ISourceCodeStore, globalSourceCodeStore } from '../store';
 
 interface UseSourceCodeStoreProps {
     sourceId?: string;
+    store?: ISourceCodeStore;
     initialHTML?: string;
     initialCSS?: string;
     initialJS?: string;
@@ -16,6 +18,8 @@ interface UseSourceCodeStoreProps {
 }
 
 export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
+    const { store = globalSourceCodeStore } = props;
+
     const {
         resolvedHTML,
         resolvedCSS,
@@ -41,6 +45,7 @@ export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
 
     useGlobalSourceSync({
         sourceId: props.sourceId,
+        store,
         setHtmlCode,
         setCssCode,
         setJsCode,
@@ -52,6 +57,7 @@ export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
 
     useGlobalSourceProvider({
         sourceId: props.sourceId,
+        store,
         initialHTML: props.initialHTML,
         initialCSS: props.initialCSS,
         initialJS: props.initialJS,
