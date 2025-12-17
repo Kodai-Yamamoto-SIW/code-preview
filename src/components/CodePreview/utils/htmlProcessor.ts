@@ -29,11 +29,6 @@ export const processImagePaths = (code: string, imageBasePath?: string, resolved
     });
 };
 
-export const processAnchorLinks = (code: string): string =>
-    code.replace(/href="#([^"]+)"/g, (match, id) => {
-        return `href="javascript:void(0)" onclick="document.getElementById('${id}')?.scrollIntoView({behavior: 'smooth'})"`;
-    });
-
 export const escapeScriptEndTag = (code: string): string => {
     return code.replace(/<\/script>/gi, '<' + '/script>');
 };
@@ -92,7 +87,6 @@ export const processHtmlCode = (
     jsCode?: string,
     resolvedImages?: { [path: string]: string }
 ): { processed: string, jsInjected: boolean } => {
-    let processed = processImagePaths(code, imageBasePath, resolvedImages);
-    processed = processAnchorLinks(processed);
+    const processed = processImagePaths(code, imageBasePath, resolvedImages);
     return resolveFilePaths(processed, cssPath, cssCode, jsPath, jsCode);
 };

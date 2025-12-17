@@ -1,6 +1,6 @@
 {
   "name": "@kodai-yamamoto-siw/code-preview",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Docusaurus用のシンプルなHTML/CSSライブプレビューコンポーネント",
   "private": false,
   "type": "module",
