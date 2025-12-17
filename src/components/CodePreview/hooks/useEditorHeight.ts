@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import type { editor } from 'monaco-editor';
 
 interface UseEditorHeightProps {
     minHeight: string;
@@ -8,9 +9,9 @@ interface UseEditorHeightProps {
     showHTMLEditor: boolean;
     showCSSEditor: boolean;
     showJSEditor: boolean;
-    htmlEditorRef?: React.RefObject<any>;
-    cssEditorRef?: React.RefObject<any>;
-    jsEditorRef?: React.RefObject<any>;
+    htmlEditorRef?: React.RefObject<editor.IStandaloneCodeEditor | null>;
+    cssEditorRef?: React.RefObject<editor.IStandaloneCodeEditor | null>;
+    jsEditorRef?: React.RefObject<editor.IStandaloneCodeEditor | null>;
 }
 
 export const useEditorHeight = ({
@@ -28,12 +29,12 @@ export const useEditorHeight = ({
     const [editorHeight, setEditorHeight] = useState(minHeight);
 
     const calculateEditorHeight = () => {
-        const calculateEditorHeightByCode = (code: string, editorRef?: React.RefObject<any>): number => {
+        const calculateEditorHeightByCode = (code: string, editorRef?: React.RefObject<editor.IStandaloneCodeEditor | null>): number => {
             // Try to use actual editor content height if available
             if (editorRef && editorRef.current) {
-                const editor = editorRef.current;
+                const editorInstance = editorRef.current;
                 // getContentHeight returns the height of the content
-                const contentHeight = editor.getContentHeight();
+                const contentHeight = editorInstance.getContentHeight();
                 if (contentHeight > 0) {
                     return contentHeight;
                 }

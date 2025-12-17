@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import type { editor } from 'monaco-editor';
 
 export type EditorKey = 'html' | 'css' | 'js';
 
@@ -18,9 +19,9 @@ interface UseEditorResizeProps {
     showCSSEditor: boolean;
     showJSEditor: boolean;
     containerRef: React.RefObject<HTMLDivElement | null>;
-    htmlEditorRef: React.RefObject<any>;
-    cssEditorRef: React.RefObject<any>;
-    jsEditorRef: React.RefObject<any>;
+    htmlEditorRef: React.RefObject<editor.IStandaloneCodeEditor | null>;
+    cssEditorRef: React.RefObject<editor.IStandaloneCodeEditor | null>;
+    jsEditorRef: React.RefObject<editor.IStandaloneCodeEditor | null>;
 }
 
 const MIN_EDITOR_WIDTH = 200;
@@ -37,16 +38,16 @@ export const useEditorResize = ({
 }: UseEditorResizeProps) => {
     const [sectionWidths, setSectionWidths] = useState<Record<EditorKey, number>>({ html: 50, css: 50, js: 0 });
     const [isResizing, setIsResizing] = useState(false);
-    
+
     const dragStateRef = useRef<DragState | null>(null);
     const userResizedRef = useRef(false);
 
-    const getEditorScrollWidth = (editorRef: React.RefObject<any>): number => {
+    const getEditorScrollWidth = (editorRef: React.RefObject<editor.IStandaloneCodeEditor | null>): number => {
         if (!editorRef.current) return 200;
 
         try {
-            const editor = editorRef.current;
-            const domNode = editor.getDomNode();
+            const editorInstance = editorRef.current;
+            const domNode = editorInstance.getDomNode();
             if (!domNode) return 200;
 
             const cursorTextElement = domNode.querySelector('.monaco-mouse-cursor-text') as HTMLElement;

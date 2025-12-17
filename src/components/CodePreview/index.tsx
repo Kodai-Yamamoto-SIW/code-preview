@@ -11,6 +11,7 @@ import { Toolbar } from './components/Toolbar';
 import { EditorPanel, EditorConfig } from './components/EditorPanel';
 import { PreviewPanel } from './components/PreviewPanel';
 import { ConsolePanel } from './components/ConsolePanel';
+import type { editor } from 'monaco-editor';
 
 export interface CodePreviewProps {
     /**
@@ -86,9 +87,9 @@ export default function CodePreview({
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const editorsRowRef = useRef<HTMLDivElement>(null);
-    const htmlEditorRef = useRef<any>(null);
-    const cssEditorRef = useRef<any>(null);
-    const jsEditorRef = useRef<any>(null);
+    const htmlEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+    const cssEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+    const jsEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
     // State
     const [showLineNumbers, setShowLineNumbers] = useState(false);
@@ -217,10 +218,10 @@ export default function CodePreview({
             setHtmlCode(newValue);
 
             if (htmlEditorRef.current) {
-                const editor = htmlEditorRef.current;
-                const position = editor.getPosition();
-                editor.setValue(newValue);
-                if (position) editor.setPosition(position);
+                const editorInstance = htmlEditorRef.current;
+                const position = editorInstance.getPosition();
+                editorInstance.setValue(newValue);
+                if (position) editorInstance.setPosition(position);
             }
         }
     }, [htmlCode, showHTMLEditor, setHtmlCode]);
@@ -232,10 +233,10 @@ export default function CodePreview({
             setCssCode(newValue);
 
             if (cssEditorRef.current) {
-                const editor = cssEditorRef.current;
-                const position = editor.getPosition();
-                editor.setValue(newValue);
-                if (position) editor.setPosition(position);
+                const editorInstance = cssEditorRef.current;
+                const position = editorInstance.getPosition();
+                editorInstance.setValue(newValue);
+                if (position) editorInstance.setPosition(position);
             }
         }
     }, [cssCode, setCssCode]);
@@ -247,10 +248,10 @@ export default function CodePreview({
             setJsCode(newValue);
 
             if (jsEditorRef.current) {
-                const editor = jsEditorRef.current;
-                const position = editor.getPosition();
-                editor.setValue(newValue);
-                if (position) editor.setPosition(position);
+                const editorInstance = jsEditorRef.current;
+                const position = editorInstance.getPosition();
+                editorInstance.setValue(newValue);
+                if (position) editorInstance.setPosition(position);
             }
         }
     }, [jsCode, setJsCode]);
@@ -259,22 +260,22 @@ export default function CodePreview({
     const handleCssChange = useCallback((value: string | undefined) => setCssCode(value || ''), [setCssCode]);
     const handleJsChange = useCallback((value: string | undefined) => setJsCode(value || ''), [setJsCode]);
 
-    const handleHtmlEditorDidMount = useCallback((editor: any) => {
-        htmlEditorRef.current = editor;
+    const handleHtmlEditorDidMount = useCallback((editorInstance: editor.IStandaloneCodeEditor) => {
+        htmlEditorRef.current = editorInstance;
         setTimeout(updateSectionWidths, 100);
-        editor.onDidChangeModelContent(() => setTimeout(updateSectionWidths, 50));
+        editorInstance.onDidChangeModelContent(() => setTimeout(updateSectionWidths, 50));
     }, [updateSectionWidths]);
 
-    const handleCssEditorDidMount = useCallback((editor: any) => {
-        cssEditorRef.current = editor;
+    const handleCssEditorDidMount = useCallback((editorInstance: editor.IStandaloneCodeEditor) => {
+        cssEditorRef.current = editorInstance;
         setTimeout(updateSectionWidths, 100);
-        editor.onDidChangeModelContent(() => setTimeout(updateSectionWidths, 50));
+        editorInstance.onDidChangeModelContent(() => setTimeout(updateSectionWidths, 50));
     }, [updateSectionWidths]);
 
-    const handleJsEditorDidMount = useCallback((editor: any) => {
-        jsEditorRef.current = editor;
+    const handleJsEditorDidMount = useCallback((editorInstance: editor.IStandaloneCodeEditor) => {
+        jsEditorRef.current = editorInstance;
         setTimeout(updateSectionWidths, 100);
-        editor.onDidChangeModelContent(() => setTimeout(updateSectionWidths, 50));
+        editorInstance.onDidChangeModelContent(() => setTimeout(updateSectionWidths, 50));
     }, [updateSectionWidths]);
 
     const editorTheme = theme === 'dark' ? 'vs-dark' : 'light';
