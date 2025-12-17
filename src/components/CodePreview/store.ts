@@ -2,7 +2,7 @@ import { SourceCodeState } from './types';
 
 type StoreListener = () => void;
 
-class SourceCodeStore {
+export class SourceCodeStore {
     private store = new Map<string, SourceCodeState>();
     private listeners = new Map<string, Set<StoreListener>>();
 

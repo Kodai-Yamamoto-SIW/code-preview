@@ -1,5 +1,4 @@
 import { editor } from 'monaco-editor';
-import { EditorKey } from '../types';
 
 export const MIN_EDITOR_WIDTH = 200;
 
@@ -44,15 +43,15 @@ export const getEditorScrollWidth = (editorInstance: editor.IStandaloneCodeEdito
 /**
  * コンテナ幅と各エディタの必要幅に基づいて、最適な幅（％）を計算します。
  */
-export const calculateOptimalEditorWidths = (
+export const calculateOptimalEditorWidths = <K extends string>(
     containerWidth: number,
-    editorNeeds: Array<{ key: EditorKey; needed: number }>
-): Record<EditorKey, number> => {
-    const resultWidths: Record<EditorKey, number> = { html: 0, css: 0, js: 0 };
+    editorNeeds: Array<{ key: K; needed: number }>
+): Record<K, number> => {
+    const resultWidths = {} as Record<K, number>;
     const count = editorNeeds.length;
 
     if (count === 0) {
-        return { html: 100, css: 0, js: 0 };
+        return resultWidths;
     }
 
     if (containerWidth <= 0) {
