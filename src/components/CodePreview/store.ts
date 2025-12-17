@@ -1,35 +1,41 @@
 import { SourceCodeState } from './types';
 
-// sourceIdごとの初期コード・画像・パスを保存するグローバルストア
-const sourceCodeStore = new Map<string, SourceCodeState>();
-
-// ストア更新を購読するリスナー
 type StoreListener = () => void;
-const storeListeners = new Map<string, Set<StoreListener>>();
 
-// ストア更新を通知する関数
-export const notifyStoreUpdate = (sourceId: string) => {
-    const listeners = storeListeners.get(sourceId);
-    if (listeners) {
-        listeners.forEach(listener => listener());
+class SourceCodeStore {
+    private store = new Map<string, SourceCodeState>();
+    private listeners = new Map<string, Set<StoreListener>>();
+
+    public get(sourceId: string): SourceCodeState | undefined {
+        return this.store.get(sourceId);
     }
-};
 
-export const getStoredSource = (sourceId: string): SourceCodeState | undefined => {
-    return sourceCodeStore.get(sourceId);
-};
-
-export const setStoredSource = (sourceId: string, state: SourceCodeState) => {
-    sourceCodeStore.set(sourceId, state);
-};
-
-export const subscribeToStore = (sourceId: string, listener: StoreListener) => {
-    if (!storeListeners.has(sourceId)) {
-        storeListeners.set(sourceId, new Set());
+    public set(sourceId: string, state: SourceCodeState): void {
+        this.store.set(sourceId, state);
     }
-    storeListeners.get(sourceId)!.add(listener);
 
-    return () => {
-        storeListeners.get(sourceId)?.delete(listener);
-    };
-};
+    public subscribe(sourceId: string, listener: StoreListener): () => void {
+        if (!this.listeners.has(sourceId)) {
+            this.listeners.set(sourceId, new Set());
+        }
+        this.listeners.get(sourceId)!.add(listener);
+
+        return () => {
+            this.listeners.get(sourceId)?.delete(listener);
+        };
+    }
+
+    public notify(sourceId: string): void {
+        const listeners = this.listeners.get(sourceId);
+        if (listeners) {
+            listeners.forEach(listener => listener());
+        }
+    }
+}
+
+export const globalSourceCodeStore = new SourceCodeStore();
+
+export const getStoredSource = (sourceId: string) => globalSourceCodeStore.get(sourceId);
+export const setStoredSource = (sourceId: string, state: SourceCodeState) => globalSourceCodeStore.set(sourceId, state);
+export const subscribeToStore = (sourceId: string, listener: StoreListener) => globalSourceCodeStore.subscribe(sourceId, listener);
+export const notifyStoreUpdate = (sourceId: string) => globalSourceCodeStore.notify(sourceId);

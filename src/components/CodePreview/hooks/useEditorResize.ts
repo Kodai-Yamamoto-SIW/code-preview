@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { editor } from 'monaco-editor';
-import { getEditorScrollWidth, computeNewPairPercents, MIN_EDITOR_WIDTH } from '../utils/resizeUtils';
+import { getEditorScrollWidth, computeNewPairPercents, calculateOptimalEditorWidths, MIN_EDITOR_WIDTH } from '../utils/resizeUtils';
 
 import { EditorKey } from '../types';
 
@@ -40,64 +40,17 @@ export const useEditorResize = ({
 
     const calculateOptimalWidths = (): Record<EditorKey, number> => {
         const container = containerRef.current;
-        // 結果の初期化（全て0）
-        const resultWidths: Record<EditorKey, number> = { html: 0, css: 0, js: 0 };
-
-        // ターゲットがない場合はhtml: 100とする（または適当なデフォルト）
-        if (resizeTargets.length === 0) {
-            return { html: 100, css: 0, js: 0 };
-        }
-
-        if (!container) {
-            // コンテナがない場合は単純に均等割り
-            const width = 100 / resizeTargets.length;
-            resizeTargets.forEach(t => {
-                resultWidths[t.key] = width;
-            });
-            return resultWidths;
-        }
+        const containerWidth = container?.offsetWidth || 800; // フォールバック値
 
         const editors: Array<{ key: EditorKey; needed: number }> = [];
         const minEditorWidth = MIN_EDITOR_WIDTH;
-        const containerWidth = container.offsetWidth || 800; // フォールバック値
 
         resizeTargets.forEach(target => {
             const htmlNeededWidth = Math.max(getEditorScrollWidth(target.ref.current), minEditorWidth);
             editors.push({ key: target.key, needed: htmlNeededWidth });
         });
 
-        const totalNeededWidth = editors.reduce((sum, e) => sum + e.needed, 0);
-
-        if (totalNeededWidth > containerWidth) {
-            const remainingWidth = containerWidth - minEditorWidth * editors.length;
-
-            if (remainingWidth <= 0) {
-                // スペース不足の場合は均等割り
-                const width = 100 / resizeTargets.length;
-                resizeTargets.forEach(t => {
-                    resultWidths[t.key] = width;
-                });
-                return resultWidths;
-            }
-
-            const widthsPx: Record<string, number> = {};
-            editors.forEach(e => {
-                const ratio = e.needed / totalNeededWidth;
-                widthsPx[e.key] = minEditorWidth + remainingWidth * ratio;
-            });
-
-            const finalWidths = { ...resultWidths };
-            editors.forEach(e => {
-                finalWidths[e.key] = (widthsPx[e.key] / containerWidth) * 100;
-            });
-            return finalWidths;
-        } else {
-            const finalWidths = { ...resultWidths };
-            editors.forEach(e => {
-                finalWidths[e.key] = (e.needed / totalNeededWidth) * 100;
-            });
-            return finalWidths;
-        }
+        return calculateOptimalEditorWidths(containerWidth, editors);
     };
 
     const updateSectionWidths = useCallback((force = false) => {

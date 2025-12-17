@@ -1,4 +1,5 @@
 import { editor } from 'monaco-editor';
+import { EditorKey } from '../types';
 
 export const MIN_EDITOR_WIDTH = 200;
 
@@ -38,6 +39,57 @@ export const getEditorScrollWidth = (editorInstance: editor.IStandaloneCodeEdito
     } catch {
         return MIN_EDITOR_WIDTH; // エラー時は最小幅
     }
+};
+
+/**
+ * コンテナ幅と各エディタの必要幅に基づいて、最適な幅（％）を計算します。
+ */
+export const calculateOptimalEditorWidths = (
+    containerWidth: number,
+    editorNeeds: Array<{ key: EditorKey; needed: number }>
+): Record<EditorKey, number> => {
+    const resultWidths: Record<EditorKey, number> = { html: 0, css: 0, js: 0 };
+    const count = editorNeeds.length;
+
+    if (count === 0) {
+        return { html: 100, css: 0, js: 0 };
+    }
+
+    if (containerWidth <= 0) {
+        const width = 100 / count;
+        editorNeeds.forEach(e => resultWidths[e.key] = width);
+        return resultWidths;
+    }
+
+    const minEditorWidth = MIN_EDITOR_WIDTH;
+    const totalNeededWidth = editorNeeds.reduce((sum, e) => sum + e.needed, 0);
+
+    if (totalNeededWidth > containerWidth) {
+        const remainingWidth = containerWidth - minEditorWidth * count;
+
+        if (remainingWidth <= 0) {
+            // スペース不足の場合は均等割り
+            const width = 100 / count;
+            editorNeeds.forEach(e => resultWidths[e.key] = width);
+            return resultWidths;
+        }
+
+        const widthsPx: Record<string, number> = {};
+        editorNeeds.forEach(e => {
+            const ratio = e.needed / totalNeededWidth;
+            widthsPx[e.key] = minEditorWidth + remainingWidth * ratio;
+        });
+
+        editorNeeds.forEach(e => {
+            resultWidths[e.key] = (widthsPx[e.key] / containerWidth) * 100;
+        });
+    } else {
+        editorNeeds.forEach(e => {
+            resultWidths[e.key] = (e.needed / totalNeededWidth) * 100;
+        });
+    }
+
+    return resultWidths;
 };
 
 /**
