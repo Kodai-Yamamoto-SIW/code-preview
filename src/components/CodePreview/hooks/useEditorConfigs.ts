@@ -2,6 +2,9 @@ import { useCallback, useState, MutableRefObject, useMemo } from 'react';
 import type { editor } from 'monaco-editor';
 import { EditorConfig } from '../types';
 
+/**
+ * useEditorConfigs フックのプロパティ
+ */
 interface UseEditorConfigsProps {
     htmlCode: string;
     cssCode: string;
@@ -18,6 +21,14 @@ interface UseEditorConfigsProps {
     jsEditorRef: MutableRefObject<editor.IStandaloneCodeEditor | null>;
 }
 
+/** レイアウト更新の遅延時間 (ms) */
+const LAYOUT_UPDATE_DELAY_MS = 100;
+/** コンテンツ変更時のレイアウト更新遅延時間 (ms) */
+const CONTENT_CHANGE_LAYOUT_DELAY_MS = 50;
+
+/**
+ * エディタの設定とイベントハンドラを管理するフック
+ */
 export const useEditorConfigs = ({
     htmlCode, cssCode, jsCode,
     setHtmlCode, setCssCode, setJsCode,
@@ -25,24 +36,26 @@ export const useEditorConfigs = ({
     updateSectionWidths,
     htmlEditorRef, cssEditorRef, jsEditorRef
 }: UseEditorConfigsProps) => {
-    // State for line numbers
+    // 行番号表示の状態
     const [showLineNumbers, setShowLineNumbers] = useState(false);
 
     const toggleLineNumbers = useCallback(() => {
         setShowLineNumbers(prev => !prev);
     }, []);
 
-    // Change handlers
+    // 変更ハンドラ
     const handleHtmlChange = useCallback((value: string | undefined) => setHtmlCode(value || ''), [setHtmlCode]);
     const handleCssChange = useCallback((value: string | undefined) => setCssCode(value || ''), [setCssCode]);
     const handleJsChange = useCallback((value: string | undefined) => setJsCode(value || ''), [setJsCode]);
 
-    // Mount handlers
+    // マウントハンドラの作成
     const createMountHandler = useCallback((ref: MutableRefObject<editor.IStandaloneCodeEditor | null>) => {
         return (editorInstance: editor.IStandaloneCodeEditor) => {
             ref.current = editorInstance;
-            setTimeout(() => updateSectionWidths(), 100);
-            editorInstance.onDidChangeModelContent(() => setTimeout(() => updateSectionWidths(), 50));
+            // 初期表示時のレイアウト調整
+            setTimeout(() => updateSectionWidths(), LAYOUT_UPDATE_DELAY_MS);
+            // コンテンツ変更時にレイアウトを再計算
+            editorInstance.onDidChangeModelContent(() => setTimeout(() => updateSectionWidths(), CONTENT_CHANGE_LAYOUT_DELAY_MS));
         };
     }, [updateSectionWidths]);
 
@@ -50,7 +63,7 @@ export const useEditorConfigs = ({
     const handleCssEditorDidMount = useMemo(() => createMountHandler(cssEditorRef), [createMountHandler, cssEditorRef]);
     const handleJsEditorDidMount = useMemo(() => createMountHandler(jsEditorRef), [createMountHandler, jsEditorRef]);
 
-    // Generate configs
+    // 設定の生成
     const editorConfigs: EditorConfig[] = [
         {
             key: 'html',

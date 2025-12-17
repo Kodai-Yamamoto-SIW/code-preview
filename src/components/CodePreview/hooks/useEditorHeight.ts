@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import type { editor } from 'monaco-editor';
 
+/**
+ * useEditorHeight フックのプロパティ
+ */
 interface UseEditorHeightProps {
     minHeight: string;
     htmlCode: string;
@@ -14,6 +17,18 @@ interface UseEditorHeightProps {
     jsEditorRef?: React.RefObject<editor.IStandaloneCodeEditor | null>;
 }
 
+/** Monaco Editorの行の高さ (px) */
+const EDITOR_LINE_HEIGHT = 19;
+/** エディタの垂直パディング (px) */
+const EDITOR_VERTICAL_PADDING = 22;
+/** エディタの最大高さ (px) */
+const MAX_EDITOR_HEIGHT = 600;
+/** 高さ更新の遅延時間 (ms) */
+const HEIGHT_UPDATE_DELAY_MS = 100;
+
+/**
+ * エディタの高さを計算・管理するフック
+ */
 export const useEditorHeight = ({
     minHeight,
     htmlCode,
@@ -30,31 +45,38 @@ export const useEditorHeight = ({
 
     const calculateEditorHeight = () => {
         const calculateEditorHeightByCode = (code: string, editorRef?: React.RefObject<editor.IStandaloneCodeEditor | null>): number => {
-            // Try to use actual editor content height if available
+            // 実際のエディタコンテンツの高さが取得できる場合はそれを使用
             if (editorRef && editorRef.current) {
                 const editorInstance = editorRef.current;
-                // getContentHeight returns the height of the content
+                // getContentHeight はコンテンツの高さを返す
                 const contentHeight = editorInstance.getContentHeight();
                 if (contentHeight > 0) {
                     return contentHeight;
                 }
             }
 
-            // Fallback to heuristic
-            if (!code) return parseInt(minHeight);
+            // エディタがまだマウントされていない場合のヒューリスティック計算
+            // minHeightを数値としてパース（"200px" -> 200）
+            const minHeightValue = parseInt(minHeight, 10);
+            
+            if (!code) return minHeightValue;
+            
             const lines = code.split('\n').length;
-            const lineHeight = 19; // Monaco editor line height
-            const padding = 22; // Vertical padding
-            return Math.max(lines * lineHeight + padding, parseInt(minHeight));
+            // 行数 * 行の高さ + パディング で高さを推定
+            return Math.max(lines * EDITOR_LINE_HEIGHT + EDITOR_VERTICAL_PADDING, minHeightValue);
         };
 
         const htmlEditorHeight = showHTMLEditor ? calculateEditorHeightByCode(htmlCode, htmlEditorRef) : 0;
         const cssEditorHeight = showCSSEditor ? calculateEditorHeightByCode(cssCode, cssEditorRef) : 0;
         const jsEditorHeight = showJSEditor ? calculateEditorHeightByCode(jsCode, jsEditorRef) : 0;
 
+        // 表示されているエディタの中で最大の高さを採用
         const maxEditorHeight = Math.max(htmlEditorHeight, cssEditorHeight, jsEditorHeight);
-        const finalEditorHeight = Math.max(maxEditorHeight, parseInt(minHeight));
-        const limitedEditorHeight = Math.min(finalEditorHeight, 600);
+        const minHeightValue = parseInt(minHeight, 10);
+        const finalEditorHeight = Math.max(maxEditorHeight, minHeightValue);
+        
+        // 最大高さ制限を適用
+        const limitedEditorHeight = Math.min(finalEditorHeight, MAX_EDITOR_HEIGHT);
 
         setEditorHeight(limitedEditorHeight + 'px');
     };
@@ -62,7 +84,7 @@ export const useEditorHeight = ({
     const updateEditorHeight = () => {
         setTimeout(() => {
             calculateEditorHeight();
-        }, 100);
+        }, HEIGHT_UPDATE_DELAY_MS);
     };
 
     useEffect(() => {
