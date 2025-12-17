@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import styles from './styles.module.css';
 import { useSourceCodeStore } from './hooks/useSourceCodeStore';
 import { useEditorResize } from './hooks/useEditorResize';
@@ -6,7 +6,9 @@ import { useEditorHeight } from './hooks/useEditorHeight';
 import { usePreviewHeight } from './hooks/usePreviewHeight';
 import { useResetHandler } from './hooks/useResetHandler';
 import { useConsoleLogs } from './hooks/useConsoleLogs';
-import { useEnsureNewline } from './hooks/useEnsureNewline';
+import { useEnsureNewlines } from './hooks/useEnsureNewlines';
+import { useResizeTargets } from './hooks/useResizeTargets';
+import { useCodePreviewReset } from './hooks/useCodePreviewReset';
 import { FileStructurePanel } from './components/FileStructurePanel';
 import { Toolbar } from './components/Toolbar';
 import { EditorPanel } from './components/EditorPanel';
@@ -107,11 +109,14 @@ export default function CodePreview({
         jsCode
     });
 
-    const resizeTargets = React.useMemo(() => [
-        showHTMLEditor ? { key: 'html' as EditorKey, ref: htmlEditorRef } : null,
-        showCSSEditor ? { key: 'css' as EditorKey, ref: cssEditorRef } : null,
-        showJSEditor ? { key: 'js' as EditorKey, ref: jsEditorRef } : null,
-    ].filter((t): t is { key: EditorKey, ref: React.RefObject<editor.IStandaloneCodeEditor | null> } => t !== null), [showHTMLEditor, showCSSEditor, showJSEditor, htmlEditorRef, cssEditorRef, jsEditorRef]);
+    const resizeTargets = useResizeTargets({
+        showHTMLEditor,
+        showCSSEditor,
+        showJSEditor,
+        htmlEditorRef,
+        cssEditorRef,
+        jsEditorRef
+    });
 
     const {
         sectionWidths,
@@ -142,21 +147,12 @@ export default function CodePreview({
     }, []);
 
     // リセット関数
-    const handleReset = useCallback(() => {
-        // 編集したコードを初期状態に戻す
-        resetCodes();
-
-        // コンソールログをクリア
-        setConsoleLogs([]);
-
-        // iframeを強制的に再マウント
-        setIframeKey(prev => prev + 1);
-
-        // プレビューを再レンダリング
-        setTimeout(() => {
-            updatePreviewHeight();
-        }, 100);
-    }, [resetCodes, setConsoleLogs, updatePreviewHeight]);
+    const handleReset = useCodePreviewReset({
+        resetCodes,
+        setConsoleLogs,
+        setIframeKey,
+        updatePreviewHeight
+    });
 
     const {
         resetProgress,
@@ -166,9 +162,11 @@ export default function CodePreview({
     } = useResetHandler({ onReset: handleReset });
 
     // 末尾改行保証
-    useEnsureNewline(htmlCode, setHtmlCode, htmlEditorRef, showHTMLEditor);
-    useEnsureNewline(cssCode, setCssCode, cssEditorRef, showCSSEditor || false);
-    useEnsureNewline(jsCode, setJsCode, jsEditorRef, showJSEditor || false);
+    useEnsureNewlines({
+        htmlCode, setHtmlCode, htmlEditorRef, showHTMLEditor,
+        cssCode, setCssCode, cssEditorRef, showCSSEditor: showCSSEditor || false,
+        jsCode, setJsCode, jsEditorRef, showJSEditor: showJSEditor || false
+    });
 
     const editorTheme = theme === 'dark' ? 'vs-dark' : 'light';
 

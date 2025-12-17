@@ -1,4 +1,4 @@
-import { useCallback, useState, MutableRefObject } from 'react';
+import { useCallback, useState, MutableRefObject, useMemo } from 'react';
 import type { editor } from 'monaco-editor';
 import { EditorConfig } from '../types';
 
@@ -26,8 +26,6 @@ export const useEditorConfigs = ({
     htmlEditorRef, cssEditorRef, jsEditorRef
 }: UseEditorConfigsProps) => {
     // State for line numbers
-
-    // State for line numbers
     const [showLineNumbers, setShowLineNumbers] = useState(false);
 
     const toggleLineNumbers = useCallback(() => {
@@ -40,25 +38,17 @@ export const useEditorConfigs = ({
     const handleJsChange = useCallback((value: string | undefined) => setJsCode(value || ''), [setJsCode]);
 
     // Mount handlers
-    // Note: We need to use setTimeout recursively or use requestAnimationFrame if updateSectionWidths depends on DOM layout
-    // that might not be ready immediately.
-    const handleHtmlEditorDidMount = useCallback((editorInstance: editor.IStandaloneCodeEditor) => {
-        htmlEditorRef.current = editorInstance;
-        setTimeout(() => updateSectionWidths(), 100);
-        editorInstance.onDidChangeModelContent(() => setTimeout(() => updateSectionWidths(), 50));
+    const createMountHandler = useCallback((ref: MutableRefObject<editor.IStandaloneCodeEditor | null>) => {
+        return (editorInstance: editor.IStandaloneCodeEditor) => {
+            ref.current = editorInstance;
+            setTimeout(() => updateSectionWidths(), 100);
+            editorInstance.onDidChangeModelContent(() => setTimeout(() => updateSectionWidths(), 50));
+        };
     }, [updateSectionWidths]);
 
-    const handleCssEditorDidMount = useCallback((editorInstance: editor.IStandaloneCodeEditor) => {
-        cssEditorRef.current = editorInstance;
-        setTimeout(() => updateSectionWidths(), 100);
-        editorInstance.onDidChangeModelContent(() => setTimeout(() => updateSectionWidths(), 50));
-    }, [updateSectionWidths]);
-
-    const handleJsEditorDidMount = useCallback((editorInstance: editor.IStandaloneCodeEditor) => {
-        jsEditorRef.current = editorInstance;
-        setTimeout(() => updateSectionWidths(), 100);
-        editorInstance.onDidChangeModelContent(() => setTimeout(() => updateSectionWidths(), 50));
-    }, [updateSectionWidths]);
+    const handleHtmlEditorDidMount = useMemo(() => createMountHandler(htmlEditorRef), [createMountHandler, htmlEditorRef]);
+    const handleCssEditorDidMount = useMemo(() => createMountHandler(cssEditorRef), [createMountHandler, cssEditorRef]);
+    const handleJsEditorDidMount = useMemo(() => createMountHandler(jsEditorRef), [createMountHandler, jsEditorRef]);
 
     // Generate configs
     const editorConfigs: EditorConfig[] = [
