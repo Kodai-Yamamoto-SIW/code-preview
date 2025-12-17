@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import styles from '../styles.module.css';
-import { buildFileStructure } from '../utils/previewGenerator';
+import { buildFileStructure } from '../utils/fileStructureUtils';
 
 interface FileStructurePanelProps {
     resolvedHtmlPath?: string;

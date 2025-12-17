@@ -19,52 +19,20 @@ interface CodePreviewLayoutProps extends UseCodePreviewResult {
 }
 
 export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
-    // Props from useCodePreview
-    iframeRef,
-    containerRef,
-    editorsRowRef,
-    htmlCode,
-    cssCode,
-    jsCode,
-    resolvedImages,
-    resolvedHtmlPath,
-    resolvedCssPath,
-    resolvedJsPath,
-    consoleLogs,
-    showFileStructure,
-    iframeKey,
-    editorTheme,
-    showHTMLEditor,
-    showCSSEditor,
-    showJSEditor,
-    showPreview,
-    showConsole,
-    editorHeight,
-    previewHeight,
-    sectionWidths,
-    isResizing,
-    visibleEditorConfigs,
-    showLineNumbers,
-    handleMouseDown,
-    handleResizerKeyDown,
-    resetSectionWidthsToAuto,
-    toggleLineNumbers,
-    toggleFileStructure,
-    handleResetMouseDown,
-    handleResetMouseUp,
-    handleResetMouseLeave,
-    resetProgress,
-
-    // Original props
+    refs,
+    state,
+    visibility,
+    layout,
+    handlers,
     title,
     minHeight,
     imageBasePath,
     cssPath,
     jsPath,
 }) => {
-    const editorsRowClassName = isResizing ? `${styles.editorsRow} ${styles.isResizing}` : styles.editorsRow;
-    const splitLayoutStyle: React.CSSProperties | undefined = showPreview ? undefined : { minHeight: 'auto' };
-    const editorsRowStyle: React.CSSProperties | undefined = showPreview || showConsole ? undefined : { borderBottom: 'none' };
+    const editorsRowClassName = layout.isResizing ? `${styles.editorsRow} ${styles.isResizing}` : styles.editorsRow;
+    const splitLayoutStyle: React.CSSProperties | undefined = visibility.showPreview ? undefined : { minHeight: 'auto' };
+    const editorsRowStyle: React.CSSProperties | undefined = visibility.showPreview || visibility.showConsole ? undefined : { borderBottom: 'none' };
 
     return (
         <div className={styles.codePreviewContainer}>
@@ -74,41 +42,41 @@ export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
                 </div>
             ) : null}
 
-            <div className={styles.splitLayout} ref={containerRef} style={splitLayoutStyle}>
+            <div className={styles.splitLayout} ref={refs.containerRef} style={splitLayoutStyle}>
                 {/* ファイル構造の表示 */}
-                {showFileStructure && (
+                {state.showFileStructure && (
                     <FileStructurePanel
-                        resolvedHtmlPath={resolvedHtmlPath}
-                        resolvedCssPath={resolvedCssPath}
-                        resolvedJsPath={resolvedJsPath}
-                        resolvedImages={resolvedImages}
+                        resolvedHtmlPath={state.resolvedHtmlPath}
+                        resolvedCssPath={state.resolvedCssPath}
+                        resolvedJsPath={state.resolvedJsPath}
+                        resolvedImages={state.resolvedImages}
                     />
                 )}
 
                 {/* エディタセクション（上段） */}
-                <div className={editorsRowClassName} style={editorsRowStyle} ref={editorsRowRef}>
+                <div className={editorsRowClassName} style={editorsRowStyle} ref={refs.editorsRowRef}>
                     <Toolbar
-                        resetProgress={resetProgress}
-                        showLineNumbers={showLineNumbers}
-                        showFileStructure={showFileStructure}
-                        onResetMouseDown={handleResetMouseDown}
-                        onResetMouseUp={handleResetMouseUp}
-                        onResetMouseLeave={handleResetMouseLeave}
-                        onToggleLineNumbers={toggleLineNumbers}
-                        onToggleFileStructure={toggleFileStructure}
+                        resetProgress={handlers.resetProgress}
+                        showLineNumbers={layout.showLineNumbers}
+                        showFileStructure={state.showFileStructure}
+                        onResetMouseDown={handlers.handleResetMouseDown}
+                        onResetMouseUp={handlers.handleResetMouseUp}
+                        onResetMouseLeave={handlers.handleResetMouseLeave}
+                        onToggleLineNumbers={handlers.toggleLineNumbers}
+                        onToggleFileStructure={handlers.toggleFileStructure}
                     />
 
-                    {visibleEditorConfigs.map((config, index) => {
-                        const nextConfig = visibleEditorConfigs[index + 1];
+                    {layout.visibleEditorConfigs.map((config, index) => {
+                        const nextConfig = layout.visibleEditorConfigs[index + 1];
 
                         return (
                             <React.Fragment key={config.key}>
                                 <EditorPanel
                                     config={config}
-                                    width={sectionWidths[config.key as EditorKey]}
-                                    height={editorHeight}
-                                    theme={editorTheme}
-                                    showLineNumbers={showLineNumbers}
+                                    width={layout.sectionWidths[config.key as EditorKey]}
+                                    height={layout.editorHeight}
+                                    theme={state.editorTheme}
+                                    showLineNumbers={layout.showLineNumbers}
                                 />
                                 {nextConfig ? (
                                     <div
@@ -117,11 +85,11 @@ export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
                                         aria-orientation="vertical"
                                         aria-label={`${config.label} と ${nextConfig.label} の幅を調整`}
                                         tabIndex={0}
-                                        onMouseDown={event => handleMouseDown(event, config.key as EditorKey, nextConfig.key as EditorKey)}
-                                        onKeyDown={event => handleResizerKeyDown(event, config.key as EditorKey, nextConfig.key as EditorKey)}
+                                        onMouseDown={event => handlers.handleMouseDown(event, config.key as EditorKey, nextConfig.key as EditorKey)}
+                                        onKeyDown={event => handlers.handleResizerKeyDown(event, config.key as EditorKey, nextConfig.key as EditorKey)}
                                         onDoubleClick={event => {
                                             event.preventDefault();
-                                            resetSectionWidthsToAuto();
+                                            handlers.resetSectionWidthsToAuto();
                                         }}
                                     >
                                         <span className={styles.resizerGrip} />
@@ -133,36 +101,36 @@ export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
                 </div>
 
                 {/* プレビュー（下段） */}
-                {(showPreview || showHTMLEditor || showCSSEditor || showJSEditor || showConsole) && (
-                    <div className={styles.previewSection} style={{ display: showPreview ? 'flex' : 'none' }}>
+                {(visibility.showPreview || visibility.showHTMLEditor || visibility.showCSSEditor || visibility.showJSEditor || visibility.showConsole) && (
+                    <div className={styles.previewSection} style={{ display: visibility.showPreview ? 'flex' : 'none' }}>
                         <div className={styles.sectionHeader}>プレビュー</div>
                         <div className={styles.previewContainer}>
                             <PreviewPanel
-                                iframeRef={iframeRef}
-                                iframeKey={iframeKey}
-                                htmlCode={htmlCode}
-                                cssCode={cssCode}
-                                jsCode={jsCode}
-                                showPreview={showPreview}
-                                showConsole={showConsole}
-                                showHTMLEditor={showHTMLEditor}
-                                showJSEditor={showJSEditor}
+                                iframeRef={refs.iframeRef}
+                                iframeKey={state.iframeKey}
+                                htmlCode={state.htmlCode}
+                                cssCode={state.cssCode}
+                                jsCode={state.jsCode}
+                                showPreview={visibility.showPreview}
+                                showConsole={visibility.showConsole}
+                                showHTMLEditor={visibility.showHTMLEditor}
+                                showJSEditor={visibility.showJSEditor}
                                 imageBasePath={imageBasePath}
-                                resolvedImages={resolvedImages}
+                                resolvedImages={state.resolvedImages}
                                 cssPath={cssPath}
                                 jsPath={jsPath}
-                                resolvedHtmlPath={resolvedHtmlPath}
-                                resolvedCssPath={resolvedCssPath}
-                                resolvedJsPath={resolvedJsPath}
-                                previewHeight={previewHeight}
+                                resolvedHtmlPath={state.resolvedHtmlPath}
+                                resolvedCssPath={state.resolvedCssPath}
+                                resolvedJsPath={state.resolvedJsPath}
+                                previewHeight={layout.previewHeight}
                                 minHeight={minHeight}
                                 visible={true}
                             />
                         </div>
                     </div>
                 )}
-                {showConsole && (
-                    <ConsolePanel logs={consoleLogs} />
+                {visibility.showConsole && (
+                    <ConsolePanel logs={state.consoleLogs} />
                 )}
             </div>
         </div>

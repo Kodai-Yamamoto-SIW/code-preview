@@ -171,51 +171,52 @@ export const useCodePreview = (props: CodePreviewProps) => {
     const editorTheme = theme === 'dark' ? 'vs-dark' : 'light';
 
     return {
-        // Refs
-        iframeRef,
-        containerRef,
-        editorsRowRef,
-        htmlEditorRef,
-        cssEditorRef,
-        jsEditorRef,
-
-        // State & Data
-        htmlCode,
-        cssCode,
-        jsCode,
-        resolvedImages,
-        resolvedHtmlPath,
-        resolvedCssPath,
-        resolvedJsPath,
-        consoleLogs,
-        showFileStructure,
-        iframeKey,
-        editorTheme,
-        
-        // Visibility
-        showHTMLEditor,
-        showCSSEditor,
-        showJSEditor,
-        showPreview,
-        showConsole,
-
-        // Layout
-        editorHeight,
-        previewHeight,
-        sectionWidths,
-        isResizing,
-        visibleEditorConfigs,
-        showLineNumbers,
-
-        // Handlers
-        handleMouseDown,
-        handleResizerKeyDown,
-        resetSectionWidthsToAuto,
-        toggleLineNumbers,
-        toggleFileStructure,
-        handleResetMouseDown,
-        handleResetMouseUp,
-        handleResetMouseLeave,
-        resetProgress,
+        refs: {
+            iframeRef,
+            containerRef,
+            editorsRowRef,
+            htmlEditorRef,
+            cssEditorRef,
+            jsEditorRef,
+        },
+        state: {
+            htmlCode,
+            cssCode,
+            jsCode,
+            resolvedImages,
+            resolvedHtmlPath,
+            resolvedCssPath,
+            resolvedJsPath,
+            consoleLogs,
+            showFileStructure,
+            iframeKey,
+            editorTheme,
+        },
+        visibility: {
+            showHTMLEditor,
+            showCSSEditor,
+            showJSEditor,
+            showPreview,
+            showConsole,
+        },
+        layout: {
+            editorHeight,
+            previewHeight,
+            sectionWidths,
+            isResizing,
+            visibleEditorConfigs,
+            showLineNumbers,
+        },
+        handlers: {
+            handleMouseDown,
+            handleResizerKeyDown,
+            resetSectionWidthsToAuto,
+            toggleLineNumbers,
+            toggleFileStructure,
+            handleResetMouseDown,
+            handleResetMouseUp,
+            handleResetMouseLeave,
+            resetProgress,
+        }
     };
 };
