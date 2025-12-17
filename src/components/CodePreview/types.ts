@@ -16,6 +16,7 @@ export interface CodePreviewProps {
     /**
      * ファイル構造（エクスプローラ）の初期表示状態
      * trueで初期表示、falseで非表示
+     * 省略時は、imagesが指定されている場合はtrue、それ以外はfalseになります
      */
     fileStructureVisible?: boolean;
     initialHTML?: string;

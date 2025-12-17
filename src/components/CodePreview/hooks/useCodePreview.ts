@@ -42,7 +42,12 @@ export const useCodePreview = (props: CodePreviewProps) => {
     const jsEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
     // State
-    const [showFileStructure, setShowFileStructure] = useState(!!fileStructureVisible);
+    const [showFileStructure, setShowFileStructure] = useState(() => {
+        if (fileStructureVisible !== undefined) {
+            return !!fileStructureVisible;
+        }
+        return !!(images && Object.keys(images).length > 0);
+    });
     const [iframeKey, setIframeKey] = useState(0);
     // iframeIdを一度だけ生成して保持する
     const [iframeId] = useState(() => `iframe-${Math.random().toString(36).substr(2, 9)}`);

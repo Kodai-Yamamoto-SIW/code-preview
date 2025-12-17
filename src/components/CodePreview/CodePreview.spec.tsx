@@ -997,4 +997,37 @@ setTimeout(function() {
             return await iframe.evaluate((el) => (el as HTMLIFrameElement).offsetHeight);
         }, { timeout: 5000 }).toBeGreaterThan(initialHeight);
     });
+
+    test('imagesが指定されている場合、fileStructureVisibleが未指定ならデフォルトで表示されること', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML="<div>Test</div>"
+                images={{ 'img/test.png': '/img/test.png' }}
+            />
+        );
+        const toggleButton = component.getByRole('button', { name: 'ファイル構造を隠す' });
+        await expect(toggleButton).toBeVisible();
+    });
+
+    test('imagesが指定されていても、fileStructureVisible=falseなら非表示であること', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML="<div>Test</div>"
+                images={{ 'img/test.png': '/img/test.png' }}
+                fileStructureVisible={false}
+            />
+        );
+        const toggleButton = component.getByRole('button', { name: 'ファイル構造を表示' });
+        await expect(toggleButton).toBeVisible();
+    });
+
+    test('imagesが指定されていない場合、fileStructureVisibleが未指定ならデフォルトで非表示であること', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML="<div>Test</div>"
+            />
+        );
+        const toggleButton = component.getByRole('button', { name: 'ファイル構造を表示' });
+        await expect(toggleButton).toBeVisible();
+    });
 });
