@@ -5,6 +5,7 @@ interface UsePreviewHeightProps {
     minHeight: string;
     showPreview: boolean;
     iframeRef: React.RefObject<HTMLIFrameElement | null>;
+    iframeId: string;
     editors: EditorDefinition[];
 }
 
@@ -14,6 +15,7 @@ export const usePreviewHeight = ({
     minHeight,
     showPreview,
     iframeRef,
+    iframeId,
     editors
 }: UsePreviewHeightProps) => {
     const [previewHeight, setPreviewHeight] = useState(minHeight);
@@ -68,7 +70,9 @@ export const usePreviewHeight = ({
     // Handle height change messages from iframe
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            if (event.data?.type === 'codePreviewHeightChange' && typeof event.data.height === 'number') {
+            if (event.data?.type === 'codePreviewHeightChange' && 
+                event.data?.iframeId === iframeId && 
+                typeof event.data.height === 'number') {
                 const newHeight = event.data.height;
                 // Only grow, never shrink
                 if (newHeight > maxHeightRef.current) {
@@ -81,7 +85,7 @@ export const usePreviewHeight = ({
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, []);
+    }, [iframeId]);
 
     // Initial load and resize
     useEffect(() => {

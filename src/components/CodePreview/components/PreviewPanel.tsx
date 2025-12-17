@@ -5,6 +5,7 @@ import { generatePreviewDocument } from '../utils/previewGenerator';
 interface PreviewPanelProps {
     iframeRef: React.RefObject<HTMLIFrameElement | null>;
     iframeKey: number;
+    iframeId: string;
     htmlCode: string;
     cssCode: string;
     jsCode: string;
@@ -27,6 +28,7 @@ interface PreviewPanelProps {
 export const PreviewPanel: React.FC<PreviewPanelProps> = ({
     iframeRef,
     iframeKey,
+    iframeId,
     htmlCode,
     cssCode,
     jsCode,
@@ -63,7 +65,8 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
                 jsPath,
                 resolvedHtmlPath,
                 resolvedCssPath,
-                resolvedJsPath
+                resolvedJsPath,
+                iframeId
             })}
             className={visible ? styles.preview : undefined}
             title="HTML+CSS Preview"

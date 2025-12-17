@@ -45,6 +45,7 @@ export const useCodePreview = (props: CodePreviewProps) => {
     // State
     const [showFileStructure, setShowFileStructure] = useState(!!fileStructureVisible);
     const [iframeKey, setIframeKey] = useState(0);
+    const iframeId = useRef(`iframe-${Math.random().toString(36).substr(2, 9)}`).current;
 
     // Store
     const {
@@ -119,6 +120,7 @@ export const useCodePreview = (props: CodePreviewProps) => {
         minHeight,
         showPreview,
         iframeRef,
+        iframeId,
         editors
     });
 
@@ -197,6 +199,7 @@ export const useCodePreview = (props: CodePreviewProps) => {
             consoleLogs,
             showFileStructure,
             iframeKey,
+            iframeId,
             editorTheme,
         },
         visibility: {

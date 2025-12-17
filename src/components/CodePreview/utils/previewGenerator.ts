@@ -17,6 +17,7 @@ export interface PreviewGeneratorOptions {
     resolvedHtmlPath?: string;
     resolvedCssPath?: string;
     resolvedJsPath?: string;
+    iframeId?: string;
 }
 
 // iframeへ渡すHTML
@@ -50,8 +51,8 @@ export const generatePreviewDocument = (options: PreviewGeneratorOptions): strin
         ? `<script data-code-preview-internal="true">${CONSOLE_INTERCEPT_SCRIPT}</script>`
         : '';
     // Height observer script to notify parent when content height changes dynamically
-    const heightObserverScriptTag = showPreview
-        ? `<script data-code-preview-internal="true">${HEIGHT_OBSERVER_SCRIPT}</script>`
+    const heightObserverScriptTag = showPreview && options.iframeId
+        ? `<script data-code-preview-internal="true">${HEIGHT_OBSERVER_SCRIPT.replace('__IFRAME_ID__', options.iframeId)}</script>`
         : '';
 
     return `

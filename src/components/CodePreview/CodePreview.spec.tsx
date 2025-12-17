@@ -869,7 +869,7 @@ test.describe('動的な高さ変更のテスト', () => {
         await expect(iframe).toBeVisible();
 
         // 初期の高さを取得
-        const initialHeight = await iframe.evaluate((el) => el.offsetHeight);
+        const initialHeight = await iframe.evaluate((el) => (el as HTMLIFrameElement).offsetHeight);
 
         // iframe内のボタンをクリックして要素を追加
         const frame = iframe.contentFrame();
@@ -879,7 +879,7 @@ test.describe('動的な高さ変更のテスト', () => {
 
         // 高さが広がることを確認（ポーリングで確認）
         await expect.poll(async () => {
-            return await iframe.evaluate((el) => el.offsetHeight);
+            return await iframe.evaluate((el) => (el as HTMLIFrameElement).offsetHeight);
         }, { timeout: 5000 }).toBeGreaterThan(initialHeight);
     });
 
@@ -912,7 +912,7 @@ document.getElementById('close-modal').addEventListener('click', function() {
         await expect(iframe).toBeVisible();
 
         // 初期の高さを取得
-        const initialHeight = await iframe.evaluate((el) => el.offsetHeight);
+        const initialHeight = await iframe.evaluate((el) => (el as HTMLIFrameElement).offsetHeight);
 
         // iframe内のボタンをクリックしてモーダルを開く
         const frame = iframe.contentFrame();
@@ -925,7 +925,7 @@ document.getElementById('close-modal').addEventListener('click', function() {
 
         // 高さが広がることを確認（ポーリングで確認）
         await expect.poll(async () => {
-            return await iframe.evaluate((el) => el.offsetHeight);
+            return await iframe.evaluate((el) => (el as HTMLIFrameElement).offsetHeight);
         }, { timeout: 5000 }).toBeGreaterThan(initialHeight);
     });
 
@@ -949,10 +949,10 @@ document.getElementById('close-modal').addEventListener('click', function() {
 
         // 初期の高さを取得（コンテンツが300pxなので、それ以上になっているはず）
         await expect.poll(async () => {
-            return await iframe.evaluate((el) => el.offsetHeight);
+            return await iframe.evaluate((el) => (el as HTMLIFrameElement).offsetHeight);
         }, { timeout: 5000 }).toBeGreaterThanOrEqual(300);
 
-        const heightBeforeShrink = await iframe.evaluate((el) => el.offsetHeight);
+        const heightBeforeShrink = await iframe.evaluate((el) => (el as HTMLIFrameElement).offsetHeight);
 
         // コンテンツを縮小
         const shrinkButton = frame.locator('#shrink-btn');
@@ -962,7 +962,7 @@ document.getElementById('close-modal').addEventListener('click', function() {
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         // 高さが変わらないことを確認（狭まらない）
-        const heightAfterShrink = await iframe.evaluate((el) => el.offsetHeight);
+        const heightAfterShrink = await iframe.evaluate((el) => (el as HTMLIFrameElement).offsetHeight);
         expect(heightAfterShrink).toBeGreaterThanOrEqual(heightBeforeShrink);
     });
 
@@ -987,11 +987,11 @@ setTimeout(function() {
         await expect(iframe).toBeVisible();
 
         // 初期の高さを取得
-        const initialHeight = await iframe.evaluate((el) => el.offsetHeight);
+        const initialHeight = await iframe.evaluate((el) => (el as HTMLIFrameElement).offsetHeight);
 
         // 遅延追加後に高さが広がることを確認
         await expect.poll(async () => {
-            return await iframe.evaluate((el) => el.offsetHeight);
+            return await iframe.evaluate((el) => (el as HTMLIFrameElement).offsetHeight);
         }, { timeout: 5000 }).toBeGreaterThan(initialHeight);
     });
 });

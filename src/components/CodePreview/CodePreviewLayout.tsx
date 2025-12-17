@@ -113,6 +113,7 @@ export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
                             <PreviewPanel
                                 iframeRef={refs.iframeRef}
                                 iframeKey={state.iframeKey}
+                                iframeId={state.iframeId}
                                 htmlCode={state.htmlCode}
                                 cssCode={state.cssCode}
                                 jsCode={state.jsCode}

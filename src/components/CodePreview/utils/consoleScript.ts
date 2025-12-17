@@ -166,10 +166,12 @@ window.onerror = function (msg, url, line, col, error) {
 `;
 
 // Script to observe height changes in iframe content and notify parent
+// __IFRAME_ID__ will be replaced with actual iframe ID
 export const HEIGHT_OBSERVER_SCRIPT = `
 (function () {
 if (!window.parent) return;
 
+const iframeId = '__IFRAME_ID__';
 let lastReportedHeight = 0;
 
 // Calculate the maximum height considering all elements including fixed/absolute positioned ones
@@ -232,7 +234,7 @@ const reportHeight = () => {
     if (currentHeight > lastReportedHeight) {
         lastReportedHeight = currentHeight;
         try {
-            window.parent.postMessage({ type: 'codePreviewHeightChange', height: currentHeight }, '*');
+            window.parent.postMessage({ type: 'codePreviewHeightChange', height: currentHeight, iframeId: iframeId }, '*');
         } catch (error) {
             // noop
         }
