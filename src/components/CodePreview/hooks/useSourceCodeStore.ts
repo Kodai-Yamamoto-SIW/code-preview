@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { getStoredSource, setStoredSource, subscribeToStore, notifyStoreUpdate, SourceCodeState } from '../store';
+import { getStoredSource, setStoredSource, subscribeToStore, notifyStoreUpdate } from '../store';
+import { SourceCodeState } from '../types';
 
 interface UseSourceCodeStoreProps {
     sourceId?: string;

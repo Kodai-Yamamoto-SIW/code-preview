@@ -2,15 +2,7 @@ import React from 'react';
 import Editor from '@monaco-editor/react';
 import styles from '../styles.module.css';
 
-export interface EditorConfig {
-    key: string;
-    label: string;
-    language: string;
-    value: string;
-    onChange: (value: string | undefined) => void;
-    onMount: (editor: any) => void;
-    visible: boolean;
-}
+import { EditorConfig } from '../types';
 
 interface EditorPanelProps {
     config: EditorConfig;

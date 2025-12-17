@@ -15,19 +15,40 @@ export const useEnsureNewline = (
         if (!isVisible) return;
         // codeがundefinedの場合は何もしない
         if (code && !code.endsWith('\n')) {
+            // エディタがまだ準備できていない、または編集中（フォーカスがある）の場合は自動修正しない
+            if (!editorRef.current || editorRef.current.hasTextFocus()) {
+                return;
+            }
+
             const newValue = code + '\n';
-            setCode(newValue);
 
             if (editorRef.current) {
                 const editorInstance = editorRef.current;
-                const position = editorInstance.getPosition();
+                const model = editorInstance.getModel();
 
-                // Note: setValueはUndoスタックをリセットする可能性がありますが、
-                // 既存の挙動を維持するために使用しています。
-                // 必要であれば executeEdits に変更することを検討してください。
-                editorInstance.setValue(newValue);
-                if (position) editorInstance.setPosition(position);
+                if (model) {
+                    const lineCount = model.getLineCount();
+                    const lastLineLength = model.getLineLength(lineCount);
+
+                    // Undoスタックを保持するためにexecuteEditsを使用
+                    editorInstance.executeEdits('ensureNewline', [{
+                        range: {
+                            startLineNumber: lineCount,
+                            startColumn: lastLineLength + 1,
+                            endLineNumber: lineCount,
+                            endColumn: lastLineLength + 1
+                        },
+                        text: '\n',
+                        forceMoveMarkers: true
+                    }]);
+
+                    // 編集操作をプッシュ（これがないとUndoスタックに追加されない場合がある）
+                    editorInstance.pushUndoStop();
+                }
             }
+
+            // Reactの状態を更新（エディタの内容と一致させる）
+            setCode(newValue);
         }
     }, [code, setCode, isVisible, editorRef]);
 };

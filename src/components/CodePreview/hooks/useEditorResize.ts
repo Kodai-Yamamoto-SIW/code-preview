@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import type { editor } from 'monaco-editor';
 import { getEditorScrollWidth, computeNewPairPercents, MIN_EDITOR_WIDTH } from '../utils/resizeUtils';
 
-export type EditorKey = 'html' | 'css' | 'js';
+import { EditorKey } from '../types';
 
 type DragState = {
     startX: number;

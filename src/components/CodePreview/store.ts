@@ -1,12 +1,4 @@
-export interface SourceCodeState {
-    html: string;
-    css: string;
-    js: string;
-    images?: { [path: string]: string };
-    htmlPath?: string;
-    cssPath?: string;
-    jsPath?: string;
-}
+import { SourceCodeState } from './types';
 
 // sourceIdごとの初期コード・画像・パスを保存するグローバルストア
 const sourceCodeStore = new Map<string, SourceCodeState>();
