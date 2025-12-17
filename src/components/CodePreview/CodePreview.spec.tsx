@@ -630,4 +630,72 @@ test.describe('CodePreview コンポーネントのテスト', () => {
         await expect(separator).toHaveAttribute('aria-orientation', 'vertical');
         await expect(separator).toHaveAttribute('tabIndex', '0');
     });
+
+    // ===== sourceId のテスト =====
+    test('同じsourceIdを持つコンポーネント間で初期状態が共有されること', async ({ mount }) => {
+        const component = await mount(
+            <div>
+                <CodePreview
+                    sourceId="shared-source-1"
+                    initialHTML="<div>Shared Content</div>"
+                />
+                <div id="second-preview">
+                    <CodePreview
+                        sourceId="shared-source-1"
+                    />
+                </div>
+            </div>
+        );
+
+        // 2つ目のコンポーネント（ソース参照側）のプレビューを確認
+        const secondPreview = component.locator('#second-preview');
+        const iframe2 = secondPreview.locator('iframe');
+        const frame2 = iframe2.contentFrame();
+        
+        // 少し待機が必要かもしれない
+        await expect(frame2.locator('div')).toHaveText('Shared Content', { timeout: 5000 });
+    });
+
+    // ===== images プロパティのテスト =====
+    test('CSS内の画像パスがimagesプロパティに基づいて解決されること', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML="<div id='bg-test'></div>"
+                initialCSS="#bg-test { background-image: url('img/bg.png'); width: 100px; height: 100px; }"
+                images={{
+                    'img/bg.png': '/static/img/real-bg.png'
+                }}
+            />
+        );
+
+        const iframe = component.locator('iframe');
+        const frame = iframe.contentFrame();
+        const div = frame.locator('#bg-test');
+        
+        // CSSが適用されるまで待機
+        await expect(div).toBeVisible();
+
+        // background-image の URL が置換されているか確認
+        await expect(div).toHaveCSS('background-image', /url\("?.*\/static\/img\/real-bg\.png"?\)/);
+    });
+
+    test('HTML内の画像パスがimagesプロパティに基づいて解決されること', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML="<img src='img/logo.png' id='logo' />"
+                images={{
+                    'img/logo.png': '/static/img/real-logo.png'
+                }}
+            />
+        );
+
+        const iframe = component.locator('iframe');
+        const frame = iframe.contentFrame();
+        const img = frame.locator('#logo');
+
+        await expect(img).toBeVisible();
+        
+        // src属性が置換されているか確認
+        await expect(img).toHaveAttribute('src', '/static/img/real-logo.png');
+    });
 });

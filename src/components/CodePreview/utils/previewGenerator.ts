@@ -18,17 +18,34 @@ export interface PreviewGeneratorOptions {
 }
 
 // 画像パスを変換する関数（相対パスにベースパスを前置）
-export const processImagePaths = (code: string, imageBasePath?: string): string => {
-    if (!imageBasePath) return code;
+export const processImagePaths = (code: string, imageBasePath?: string, resolvedImages?: { [path: string]: string }): string => {
+    if (!imageBasePath && !resolvedImages) return code;
 
-    let base = imageBasePath;
-    if (!base.endsWith('/')) base += '/';
+    let base = imageBasePath || '';
+    if (base && !base.endsWith('/')) base += '/';
 
-    return code.replace(/src="([^"]+)"/g, (match, src) => {
+    return code.replace(/src=(["'])(.*?)\1/g, (match, quote, src) => {
         if (src.startsWith('/') || src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:')) {
             return match;
         }
-        return `src="${base}${src}"`;
+
+        // resolvedImagesがある場合、そちらを優先
+        if (resolvedImages) {
+            // 相対パス正規化（../img/〜, ./img/〜, img/〜 など）
+            let norm = src.replace(/^\.\//, '');
+            if (norm.startsWith('..')) {
+                norm = norm.replace(/^\.\.\//, '');
+            }
+            if (resolvedImages[norm]) {
+                return `src=${quote}${resolvedImages[norm]}${quote}`;
+            }
+        }
+
+        if (base) {
+            return `src=${quote}${base}${src}${quote}`;
+        }
+        
+        return match;
     });
 };
 
@@ -113,9 +130,10 @@ export const processHtmlCode = (
     cssPath?: string,
     cssCode?: string,
     jsPath?: string,
-    jsCode?: string
+    jsCode?: string,
+    resolvedImages?: { [path: string]: string }
 ): { processed: string, jsInjected: boolean } => {
-    let processed = processImagePaths(code, imageBasePath);
+    let processed = processImagePaths(code, imageBasePath, resolvedImages);
     processed = processAnchorLinks(processed);
     return resolveFilePaths(processed, cssPath, cssCode, jsPath, jsCode);
 };
@@ -187,7 +205,7 @@ export const generatePreviewDocument = (options: PreviewGeneratorOptions): strin
     const targetCssPath = resolvedCssPath || cssPath;
     const targetJsPath = resolvedJsPath || jsPath;
 
-    const { processed: processedHtmlRaw, jsInjected } = processHtmlCode(htmlCode, imageBasePath, targetCssPath, cssCode, targetJsPath, jsCode);
+    const { processed: processedHtmlRaw, jsInjected } = processHtmlCode(htmlCode, imageBasePath, targetCssPath, cssCode, targetJsPath, jsCode, resolvedImages);
     const processedHtml = escapeScriptEndTag(processedHtmlRaw);
     const processedCss = processCssCode(cssCode, resolvedImages);
     const styleTag = processedCss ? `<style>\n${processedCss}\n</style>` : '';
