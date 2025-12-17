@@ -1,55 +1,61 @@
 {
-    "name": "@kodai-yamamoto-siw/code-preview",
-    "version": "0.1.8",
-    "description": "Docusaurus用のシンプルなHTML/CSSライブプレビューコンポーネント",
-    "private": false,
-    "type": "module",
-    "main": "dist/index.cjs",
-    "module": "dist/index.esm.js",
-    "types": "dist/index.d.ts",
-    "exports": {
-        ".": {
-            "import": "./dist/index.esm.js",
-            "require": "./dist/index.cjs",
-            "types": "./dist/index.d.ts"
-        },
-        "./styles.css": "./dist/styles.css"
+  "name": "@kodai-yamamoto-siw/code-preview",
+  "version": "0.1.8",
+  "description": "Docusaurus用のシンプルなHTML/CSSライブプレビューコンポーネント",
+  "private": false,
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
     },
-    "files": [
-        "dist"
-    ],
-    "sideEffects": [
-        "**/*.css"
-    ],
-    "scripts": {
-        "build": "rollup -c",
-        "clean": "rimraf dist",
-        "prepare": "npm run build"
-    },
-    "peerDependencies": {
-        "react": ">=18",
-        "react-dom": ">=18"
-    },
-    "dependencies": {
-        "@monaco-editor/react": "^4.7.0"
-    },
-    "devDependencies": {
-        "typescript": "~5.9.2",
-        "rollup": "^4.52.3",
-        "@rollup/plugin-node-resolve": "^16.0.1",
-        "@rollup/plugin-commonjs": "^28.0.6",
-        "@rollup/plugin-typescript": "^12.1.4",
-        "rollup-plugin-postcss": "^4.0.2",
-        "postcss": "^8.5.6",
-        "autoprefixer": "^10.4.21",
-        "tslib": "^2.8.1",
-        "rimraf": "^6.0.1",
-        "@types/react": "^19.1.16",
-        "@types/react-dom": "^19.1.9"
-    },
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/Kodai-Yamamoto-SIW/programming-course-docs"
-    }
+    "./styles.css": "./dist/styles.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "test-ct:quick": "npm run test-ct -- --project=chromium",
+    "test-ct": "playwright test -c playwright-ct.config.ts",
+    "test": "npm run test-ct:quick && npm run test-ct",
+    "build": "rollup -c",
+    "clean": "rimraf dist",
+    "prepare": "npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0"
+  },
+  "devDependencies": {
+    "@playwright/experimental-ct-react": "^1.57.0",
+    "@playwright/test": "^1.57.0",
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-typescript": "^12.1.4",
+    "@types/node": "^25.0.3",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "rimraf": "^6.0.1",
+    "rollup": "^4.52.3",
+    "rollup-plugin-postcss": "^4.0.2",
+    "tslib": "^2.8.1",
+    "typescript": "~5.9.2"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kodai-Yamamoto-SIW/programming-course-docs"
+  }
 }
