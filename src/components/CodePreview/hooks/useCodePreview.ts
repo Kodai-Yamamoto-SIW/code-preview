@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import type { editor } from 'monaco-editor';
-import { CodePreviewProps, EditorKey } from '../types';
+import { CodePreviewProps, EditorDefinition } from '../types';
 import { useSourceCodeStore } from './useSourceCodeStore';
 import { useEditorResize } from './useEditorResize';
 import { useEditorHeight } from './useEditorHeight';
@@ -78,37 +78,51 @@ export const useCodePreview = (props: CodePreviewProps) => {
     const showPreview = resolveVisibility(showHTMLEditor, previewVisible);
     const showConsole = resolveVisibility(consoleLogs.length > 0, consoleVisible);
 
+    // Editors Definition
+    const editors: EditorDefinition[] = useMemo(() => [
+        {
+            key: 'html',
+            label: 'HTML',
+            language: 'html',
+            code: htmlCode,
+            setCode: setHtmlCode,
+            visible: showHTMLEditor,
+            ref: htmlEditorRef
+        },
+        {
+            key: 'css',
+            label: 'CSS',
+            language: 'css',
+            code: cssCode,
+            setCode: setCssCode,
+            visible: showCSSEditor,
+            ref: cssEditorRef
+        },
+        {
+            key: 'js',
+            label: 'JavaScript',
+            language: 'javascript',
+            code: jsCode,
+            setCode: setJsCode,
+            visible: showJSEditor,
+            ref: jsEditorRef
+        }
+    ], [htmlCode, cssCode, jsCode, setHtmlCode, setCssCode, setJsCode, showHTMLEditor, showCSSEditor, showJSEditor]);
+
     // Hooks
     const { editorHeight } = useEditorHeight({
         minHeight,
-        htmlCode,
-        cssCode,
-        jsCode,
-        showHTMLEditor,
-        showCSSEditor,
-        showJSEditor,
-        htmlEditorRef,
-        cssEditorRef,
-        jsEditorRef
+        editors
     });
 
     const { previewHeight, updatePreviewHeight } = usePreviewHeight({
         minHeight,
         showPreview,
         iframeRef,
-        htmlCode,
-        cssCode,
-        jsCode
+        editors
     });
 
-    const resizeTargets = useResizeTargets({
-        showHTMLEditor,
-        showCSSEditor,
-        showJSEditor,
-        htmlEditorRef,
-        cssEditorRef,
-        jsEditorRef
-    });
+    const resizeTargets = useResizeTargets({ editors });
 
     const {
         sectionWidths,
@@ -127,11 +141,8 @@ export const useCodePreview = (props: CodePreviewProps) => {
         showLineNumbers,
         toggleLineNumbers
     } = useEditorConfigs({
-        htmlCode, cssCode, jsCode,
-        setHtmlCode, setCssCode, setJsCode,
-        showHTMLEditor, showCSSEditor, showJSEditor,
-        updateSectionWidths,
-        htmlEditorRef, cssEditorRef, jsEditorRef
+        editors,
+        updateSectionWidths
     });
 
     const toggleFileStructure = useCallback(() => {
@@ -162,11 +173,7 @@ export const useCodePreview = (props: CodePreviewProps) => {
     } = useResetHandler({ onReset: handleReset });
 
     // 末尾改行保証
-    useEnsureNewlines({
-        htmlCode, setHtmlCode, htmlEditorRef, showHTMLEditor,
-        cssCode, setCssCode, cssEditorRef, showCSSEditor: showCSSEditor || false,
-        jsCode, setJsCode, jsEditorRef, showJSEditor: showJSEditor || false
-    });
+    useEnsureNewlines({ editors });
 
     const editorTheme = theme === 'dark' ? 'vs-dark' : 'light';
 

@@ -1,20 +1,13 @@
 import { useState, useEffect } from 'react';
 import type { editor } from 'monaco-editor';
+import { EditorDefinition } from '../types';
 
 /**
  * useEditorHeight フックのプロパティ
  */
 interface UseEditorHeightProps {
     minHeight: string;
-    htmlCode: string;
-    cssCode: string;
-    jsCode: string;
-    showHTMLEditor: boolean;
-    showCSSEditor: boolean;
-    showJSEditor: boolean;
-    htmlEditorRef?: React.RefObject<editor.IStandaloneCodeEditor | null>;
-    cssEditorRef?: React.RefObject<editor.IStandaloneCodeEditor | null>;
-    jsEditorRef?: React.RefObject<editor.IStandaloneCodeEditor | null>;
+    editors: EditorDefinition[];
 }
 
 /** Monaco Editorの行の高さ (px) */
@@ -31,20 +24,12 @@ const HEIGHT_UPDATE_DELAY_MS = 100;
  */
 export const useEditorHeight = ({
     minHeight,
-    htmlCode,
-    cssCode,
-    jsCode,
-    showHTMLEditor,
-    showCSSEditor,
-    showJSEditor,
-    htmlEditorRef,
-    cssEditorRef,
-    jsEditorRef
+    editors
 }: UseEditorHeightProps) => {
     const [editorHeight, setEditorHeight] = useState(minHeight);
 
     const calculateEditorHeight = () => {
-        const calculateEditorHeightByCode = (code: string, editorRef?: React.RefObject<editor.IStandaloneCodeEditor | null>): number => {
+        const calculateEditorHeightByCode = (code: string, editorRef?: React.MutableRefObject<editor.IStandaloneCodeEditor | null>): number => {
             // 実際のエディタコンテンツの高さが取得できる場合はそれを使用
             if (editorRef && editorRef.current) {
                 const editorInstance = editorRef.current;
@@ -66,12 +51,12 @@ export const useEditorHeight = ({
             return Math.max(lines * EDITOR_LINE_HEIGHT + EDITOR_VERTICAL_PADDING, minHeightValue);
         };
 
-        const htmlEditorHeight = showHTMLEditor ? calculateEditorHeightByCode(htmlCode, htmlEditorRef) : 0;
-        const cssEditorHeight = showCSSEditor ? calculateEditorHeightByCode(cssCode, cssEditorRef) : 0;
-        const jsEditorHeight = showJSEditor ? calculateEditorHeightByCode(jsCode, jsEditorRef) : 0;
+        const heights = editors
+            .filter(editor => editor.visible)
+            .map(editor => calculateEditorHeightByCode(editor.code, editor.ref));
 
         // 表示されているエディタの中で最大の高さを採用
-        const maxEditorHeight = Math.max(htmlEditorHeight, cssEditorHeight, jsEditorHeight);
+        const maxEditorHeight = heights.length > 0 ? Math.max(...heights) : 0;
         const minHeightValue = parseInt(minHeight, 10);
         const finalEditorHeight = Math.max(maxEditorHeight, minHeightValue);
         
@@ -89,7 +74,7 @@ export const useEditorHeight = ({
 
     useEffect(() => {
         updateEditorHeight();
-    }, [htmlCode, cssCode, jsCode, minHeight, showHTMLEditor, showCSSEditor, showJSEditor]);
+    }, [editors, minHeight]);
 
     useEffect(() => {
         const handleResize = () => {

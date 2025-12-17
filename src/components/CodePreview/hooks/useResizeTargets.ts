@@ -1,28 +1,21 @@
 import { useMemo } from 'react';
 import type { editor } from 'monaco-editor';
-import { EditorKey } from '../types';
+import { EditorDefinition, EditorKey } from '../types';
+import { ResizeTarget } from './useEditorResize';
 
 interface UseResizeTargetsProps {
-    showHTMLEditor: boolean;
-    showCSSEditor: boolean;
-    showJSEditor: boolean;
-    htmlEditorRef: React.RefObject<editor.IStandaloneCodeEditor | null>;
-    cssEditorRef: React.RefObject<editor.IStandaloneCodeEditor | null>;
-    jsEditorRef: React.RefObject<editor.IStandaloneCodeEditor | null>;
+    editors: EditorDefinition[];
 }
 
 export const useResizeTargets = ({
-    showHTMLEditor,
-    showCSSEditor,
-    showJSEditor,
-    htmlEditorRef,
-    cssEditorRef,
-    jsEditorRef
-}: UseResizeTargetsProps) => {
-    return useMemo(() => [
-        showHTMLEditor ? { key: 'html' as EditorKey, ref: htmlEditorRef } : null,
-        showCSSEditor ? { key: 'css' as EditorKey, ref: cssEditorRef } : null,
-        showJSEditor ? { key: 'js' as EditorKey, ref: jsEditorRef } : null,
-    ].filter((t): t is { key: EditorKey, ref: React.RefObject<editor.IStandaloneCodeEditor | null> } => t !== null), 
-    [showHTMLEditor, showCSSEditor, showJSEditor, htmlEditorRef, cssEditorRef, jsEditorRef]);
+    editors
+}: UseResizeTargetsProps): ResizeTarget<EditorKey>[] => {
+    return useMemo(() => {
+        return editors
+            .filter(editor => editor.visible)
+            .map(editor => ({
+                key: editor.key,
+                ref: editor.ref
+            }));
+    }, [editors]);
 };

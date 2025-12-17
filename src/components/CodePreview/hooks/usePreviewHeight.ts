@@ -1,21 +1,18 @@
 import { useState, useEffect } from 'react';
+import { EditorDefinition } from '../types';
 
 interface UsePreviewHeightProps {
     minHeight: string;
     showPreview: boolean;
     iframeRef: React.RefObject<HTMLIFrameElement | null>;
-    htmlCode: string; // Trigger update on code change
-    cssCode: string;
-    jsCode: string;
+    editors: EditorDefinition[];
 }
 
 export const usePreviewHeight = ({
     minHeight,
     showPreview,
     iframeRef,
-    htmlCode,
-    cssCode,
-    jsCode
+    editors
 }: UsePreviewHeightProps) => {
     const [previewHeight, setPreviewHeight] = useState(minHeight);
 
@@ -78,7 +75,7 @@ export const usePreviewHeight = ({
         if (showPreview) {
             updatePreviewHeight();
         }
-    }, [htmlCode, cssCode, jsCode, minHeight, showPreview]);
+    }, [editors, minHeight, showPreview]);
 
     // Window resize
     useEffect(() => {

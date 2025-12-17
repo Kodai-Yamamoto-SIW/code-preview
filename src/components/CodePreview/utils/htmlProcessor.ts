@@ -1,4 +1,33 @@
-import { processImagePaths } from './pathUtils';
+export const processImagePaths = (code: string, imageBasePath?: string, resolvedImages?: { [path: string]: string }): string => {
+    if (!imageBasePath && !resolvedImages) return code;
+
+    let base = imageBasePath || '';
+    if (base && !base.endsWith('/')) base += '/';
+
+    return code.replace(/src=(["'])(.*?)\1/g, (match, quote, src) => {
+        if (src.startsWith('/') || src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:')) {
+            return match;
+        }
+
+        // resolvedImagesがある場合、そちらを優先
+        if (resolvedImages) {
+            // 相対パス正規化（../img/〜, ./img/〜, img/〜 など）
+            let norm = src.replace(/^\.\//, '');
+            if (norm.startsWith('..')) {
+                norm = norm.replace(/^\.\.\//, '');
+            }
+            if (resolvedImages[norm]) {
+                return `src=${quote}${resolvedImages[norm]}${quote}`;
+            }
+        }
+
+        if (base) {
+            return `src=${quote}${base}${src}${quote}`;
+        }
+        
+        return match;
+    });
+};
 
 export const processAnchorLinks = (code: string): string =>
     code.replace(/href="#([^"]+)"/g, (match, id) => {

@@ -2,6 +2,16 @@ import type { editor } from 'monaco-editor';
 
 export type EditorKey = 'html' | 'css' | 'js';
 
+export interface EditorDefinition {
+    key: EditorKey;
+    label: string;
+    language: string;
+    code: string;
+    setCode: (value: string) => void;
+    visible: boolean;
+    ref: React.MutableRefObject<editor.IStandaloneCodeEditor | null>;
+}
+
 export interface CodePreviewProps {
     /**
      * ファイル構造（エクスプローラ）の初期表示状態

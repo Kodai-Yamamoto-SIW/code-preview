@@ -1,5 +1,5 @@
 import { CONSOLE_INTERCEPT_SCRIPT } from './consoleScript';
-import { processCssCode } from './pathUtils';
+import { processCssCode } from './cssProcessor';
 import { processHtmlCode, escapeScriptEndTag } from './htmlProcessor';
 
 export interface PreviewGeneratorOptions {
