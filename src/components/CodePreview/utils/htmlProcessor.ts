@@ -4,28 +4,45 @@ export const processImagePaths = (code: string, imageBasePath?: string, resolved
     let base = imageBasePath || '';
     if (base && !base.endsWith('/')) base += '/';
 
-    return code.replace(/src=(["'])(.*?)\1/g, (match, quote, src) => {
-        if (src.startsWith('/') || src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:')) {
-            return match;
+    const resolvePath = (path: string): string => {
+        if (path.startsWith('/') || path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+            return path;
         }
 
         // resolvedImagesがある場合、そちらを優先
         if (resolvedImages) {
             // 相対パス正規化（../img/〜, ./img/〜, img/〜 など）
-            let norm = src.replace(/^\.\//, '');
+            let norm = path.replace(/^\.\//, '');
             if (norm.startsWith('..')) {
                 norm = norm.replace(/^\.\.\//, '');
             }
             if (resolvedImages[norm]) {
-                return `src=${quote}${resolvedImages[norm]}${quote}`;
+                return resolvedImages[norm];
             }
         }
 
         if (base) {
-            return `src=${quote}${base}${src}${quote}`;
+            return `${base}${path}`;
         }
         
-        return match;
+        return path;
+    };
+
+    return code.replace(/(src|href|srcset)=(["'])(.*?)\2/g, (match, attr, quote, value) => {
+        if (attr === 'srcset') {
+            const newValue = value.split(',').map((part: string) => {
+                const trimmed = part.trim();
+                const spaceIndex = trimmed.indexOf(' ');
+                if (spaceIndex === -1) {
+                    return resolvePath(trimmed);
+                }
+                const url = trimmed.slice(0, spaceIndex);
+                const descriptor = trimmed.slice(spaceIndex);
+                return resolvePath(url) + descriptor;
+            }).join(', ');
+            return `${attr}=${quote}${newValue}${quote}`;
+        }
+        return `${attr}=${quote}${resolvePath(value)}${quote}`;
     });
 };
 
