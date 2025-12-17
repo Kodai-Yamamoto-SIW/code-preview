@@ -1,11 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
-import Editor from '@monaco-editor/react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import styles from './styles.module.css';
 import { useSourceCodeStore } from './hooks/useSourceCodeStore';
 import { useEditorResize, EditorKey } from './hooks/useEditorResize';
 import { useEditorHeight } from './hooks/useEditorHeight';
 import { usePreviewHeight } from './hooks/usePreviewHeight';
-import { generatePreviewDocument, buildFileStructure } from './utils/previewGenerator';
+import { useResetHandler } from './hooks/useResetHandler';
+import { useConsoleLogs } from './hooks/useConsoleLogs';
+import { FileStructurePanel } from './components/FileStructurePanel';
+import { Toolbar } from './components/Toolbar';
+import { EditorPanel, EditorConfig } from './components/EditorPanel';
+import { PreviewPanel } from './components/PreviewPanel';
+import { ConsolePanel } from './components/ConsolePanel';
 
 export interface CodePreviewProps {
     /**
@@ -57,18 +62,6 @@ export interface CodePreviewProps {
     images?: { [path: string]: string };
 }
 
-type EditorConfig = {
-    key: EditorKey;
-    label: string;
-    language: 'html' | 'css' | 'javascript';
-    value: string;
-    onChange: (value: string | undefined) => void;
-    onMount: (editor: any) => void;
-    visible: boolean;
-};
-
-const KEYBOARD_STEP_PERCENT = 5;
-
 export default function CodePreview({
     initialHTML,
     initialCSS,
@@ -96,15 +89,11 @@ export default function CodePreview({
     const htmlEditorRef = useRef<any>(null);
     const cssEditorRef = useRef<any>(null);
     const jsEditorRef = useRef<any>(null);
-    const resetTimerRef = useRef<number | null>(null);
-    const resetProgressIntervalRef = useRef<number | null>(null);
 
     // State
-    const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
     const [showLineNumbers, setShowLineNumbers] = useState(false);
     const [showFileStructure, setShowFileStructure] = useState(!!fileStructureVisible);
     const [iframeKey, setIframeKey] = useState(0);
-    const [resetProgress, setResetProgress] = useState(0);
 
     // Store
     const {
@@ -119,7 +108,6 @@ export default function CodePreview({
         resolvedCssPath,
         resolvedJsPath,
         initialStateRef,
-        ensureTrailingNewline
     } = useSourceCodeStore({
         sourceId,
         initialHTML,
@@ -139,6 +127,8 @@ export default function CodePreview({
         return autoVisible;
     };
 
+    const { consoleLogs, setConsoleLogs } = useConsoleLogs(iframeRef, [jsCode, htmlCode]);
+
     const showHTMLEditor = resolveVisibility(resolvedHTML !== undefined, htmlVisible);
     const showCSSEditor = resolveVisibility(resolvedCSS !== undefined, cssVisible);
     const showJSEditor = resolveVisibility(resolvedJS !== undefined, jsVisible);
@@ -146,7 +136,7 @@ export default function CodePreview({
     const showConsole = resolveVisibility(consoleLogs.length > 0, consoleVisible);
 
     // Hooks
-    const { editorHeight, updateEditorHeight } = useEditorHeight({
+    const { editorHeight } = useEditorHeight({
         minHeight,
         htmlCode,
         cssCode,
@@ -185,18 +175,16 @@ export default function CodePreview({
         jsEditorRef
     });
 
-
-
-
-
-
-
-    const toggleLineNumbers = () => {
+    const toggleLineNumbers = useCallback(() => {
         setShowLineNumbers(prev => !prev);
-    };
+    }, []);
+
+    const toggleFileStructure = useCallback(() => {
+        setShowFileStructure(prev => !prev);
+    }, []);
 
     // リセット関数
-    const handleReset = () => {
+    const handleReset = useCallback(() => {
         // 編集したコードを初期状態に戻す
         setHtmlCode(initialStateRef.current.html);
         setCssCode(initialStateRef.current.css);
@@ -212,80 +200,14 @@ export default function CodePreview({
         setTimeout(() => {
             updatePreviewHeight();
         }, 100);
-    };
+    }, [initialStateRef, setHtmlCode, setCssCode, setJsCode, setConsoleLogs, updatePreviewHeight]);
 
-    // 長押しハンドラー
-    const handleResetMouseDown = () => {
-        let start = Date.now();
-        setResetProgress(0);
-        resetProgressIntervalRef.current = window.setInterval(() => {
-            const elapsed = Date.now() - start;
-            setResetProgress(Math.min(elapsed / 500, 1));
-        }, 16);
-        resetTimerRef.current = window.setTimeout(() => {
-            setResetProgress(1);
-            handleReset();
-            if (resetProgressIntervalRef.current) {
-                clearInterval(resetProgressIntervalRef.current);
-                resetProgressIntervalRef.current = null;
-            }
-        }, 500); // 500ミリ秒（0.5秒）の長押し
-    };
-
-    const handleResetMouseUp = () => {
-        if (resetTimerRef.current) {
-            clearTimeout(resetTimerRef.current);
-            resetTimerRef.current = null;
-        }
-        if (resetProgressIntervalRef.current) {
-            clearInterval(resetProgressIntervalRef.current);
-            resetProgressIntervalRef.current = null;
-        }
-        setResetProgress(0);
-    };
-
-    const handleResetMouseLeave = () => {
-        if (resetTimerRef.current) {
-            clearTimeout(resetTimerRef.current);
-            resetTimerRef.current = null;
-        }
-        if (resetProgressIntervalRef.current) {
-            clearInterval(resetProgressIntervalRef.current);
-            resetProgressIntervalRef.current = null;
-        }
-        setResetProgress(0);
-    };
-
-    // コンポーネントのアンマウント時にタイマーをクリア
-    useEffect(() => {
-        return () => {
-            if (resetTimerRef.current) {
-                clearTimeout(resetTimerRef.current);
-            }
-        };
-    }, []);
-
-
-
-
-
-    useEffect(() => {
-        setConsoleLogs([]);
-    }, [jsCode, htmlCode]);
-
-    useEffect(() => {
-        const handleMessage = (event: MessageEvent) => {
-            if (event.source !== iframeRef.current?.contentWindow) return;
-            const data = event.data;
-            if (!data || typeof data !== 'object') return;
-            if (data.type === 'codePreviewConsoleLog' && Array.isArray(data.messages)) {
-                setConsoleLogs(data.messages);
-            }
-        };
-
-        window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
-    }, []);
+    const {
+        resetProgress,
+        handleResetMouseDown,
+        handleResetMouseUp,
+        handleResetMouseLeave
+    } = useResetHandler({ onReset: handleReset });
 
     // HTML末尾改行保証
     useEffect(() => {
@@ -301,7 +223,7 @@ export default function CodePreview({
                 if (position) editor.setPosition(position);
             }
         }
-    }, [htmlCode, showHTMLEditor]);
+    }, [htmlCode, showHTMLEditor, setHtmlCode]);
 
     // CSS末尾改行保証
     useEffect(() => {
@@ -316,7 +238,7 @@ export default function CodePreview({
                 if (position) editor.setPosition(position);
             }
         }
-    }, [cssCode]);
+    }, [cssCode, setCssCode]);
 
     // JS末尾改行保証
     useEffect(() => {
@@ -331,33 +253,29 @@ export default function CodePreview({
                 if (position) editor.setPosition(position);
             }
         }
-    }, [jsCode]);
+    }, [jsCode, setJsCode]);
 
+    const handleHtmlChange = useCallback((value: string | undefined) => setHtmlCode(value || ''), [setHtmlCode]);
+    const handleCssChange = useCallback((value: string | undefined) => setCssCode(value || ''), [setCssCode]);
+    const handleJsChange = useCallback((value: string | undefined) => setJsCode(value || ''), [setJsCode]);
 
-
-
-
-    const handleHtmlChange = (value: string | undefined) => setHtmlCode(value || '');
-    const handleCssChange = (value: string | undefined) => setCssCode(value || '');
-    const handleJsChange = (value: string | undefined) => setJsCode(value || '');
-
-    const handleHtmlEditorDidMount = (editor: any) => {
+    const handleHtmlEditorDidMount = useCallback((editor: any) => {
         htmlEditorRef.current = editor;
         setTimeout(updateSectionWidths, 100);
         editor.onDidChangeModelContent(() => setTimeout(updateSectionWidths, 50));
-    };
+    }, [updateSectionWidths]);
 
-    const handleCssEditorDidMount = (editor: any) => {
+    const handleCssEditorDidMount = useCallback((editor: any) => {
         cssEditorRef.current = editor;
         setTimeout(updateSectionWidths, 100);
         editor.onDidChangeModelContent(() => setTimeout(updateSectionWidths, 50));
-    };
+    }, [updateSectionWidths]);
 
-    const handleJsEditorDidMount = (editor: any) => {
+    const handleJsEditorDidMount = useCallback((editor: any) => {
         jsEditorRef.current = editor;
         setTimeout(updateSectionWidths, 100);
         editor.onDidChangeModelContent(() => setTimeout(updateSectionWidths, 50));
-    };
+    }, [updateSectionWidths]);
 
     const editorTheme = theme === 'dark' ? 'vs-dark' : 'light';
 
@@ -397,37 +315,6 @@ export default function CodePreview({
     const splitLayoutStyle: React.CSSProperties | undefined = showPreview ? undefined : { minHeight: 'auto' };
     const editorsRowStyle: React.CSSProperties | undefined = showPreview || showConsole ? undefined : { borderBottom: 'none' };
 
-    const renderPreviewIframe = (visible: boolean): React.ReactElement => (
-        <iframe
-            key={`${visible ? 'visible' : 'hidden'}-${iframeKey}`}
-            ref={iframeRef}
-            srcDoc={generatePreviewDocument({
-                htmlCode,
-                cssCode,
-                jsCode,
-                showPreview,
-                showConsole,
-                showHTMLEditor,
-                showJSEditor,
-                imageBasePath,
-                resolvedImages,
-                cssPath,
-                jsPath,
-                resolvedHtmlPath,
-                resolvedCssPath,
-                resolvedJsPath
-            })}
-            className={visible ? styles.preview : undefined}
-            title="HTML+CSS Preview"
-            sandbox="allow-scripts allow-same-origin"
-            style={
-                visible
-                    ? ({ height: previewHeight, '--min-height': minHeight } as React.CSSProperties)
-                    : ({ display: 'none' } as React.CSSProperties)
-            }
-        />
-    );
-
     return (
         <div className={styles.codePreviewContainer}>
             {title ? (
@@ -439,144 +326,39 @@ export default function CodePreview({
             <div className={styles.splitLayout} ref={containerRef} style={splitLayoutStyle}>
                 {/* ファイル構造の表示 */}
                 {showFileStructure && (
-                    <div className={styles.fileStructure}>
-                        <div className={styles.fileStructureTitle}>📁 ファイル構造</div>
-                        <div className={styles.fileTree}>
-                            {(() => {
-                                const { folders, rootFiles } = buildFileStructure(resolvedHtmlPath, resolvedCssPath, resolvedJsPath, resolvedImages);
-                                return (
-                                    <>
-                                        {rootFiles.map(file => (
-                                            <div key={file} className={styles.fileTreeItem}>
-                                                <span className={styles.fileIcon}>📄</span> {file}
-                                            </div>
-                                        ))}
-                                        {Array.from(folders.entries()).map(([folderPath, files]) => (
-                                            <div key={folderPath} className={styles.fileTreeFolder}>
-                                                <div className={styles.fileTreeItem}>
-                                                    <span className={styles.folderIcon}>📁</span> {folderPath}
-                                                </div>
-                                                {files.map(file => (
-                                                    <div key={`${folderPath}/${file}`} className={styles.fileTreeSubItem}>
-                                                        <span className={styles.fileIcon}>📄</span> {file}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ))}
-                                    </>
-                                );
-                            })()}
-                        </div>
-                    </div>
+                    <FileStructurePanel
+                        resolvedHtmlPath={resolvedHtmlPath}
+                        resolvedCssPath={resolvedCssPath}
+                        resolvedJsPath={resolvedJsPath}
+                        resolvedImages={resolvedImages}
+                    />
                 )}
 
                 {/* エディタセクション（上段） */}
                 <div className={editorsRowClassName} style={editorsRowStyle} ref={editorsRowRef}>
-                    <button
-                        type="button"
-                        className={styles.gyoButton}
-                        onMouseDown={handleResetMouseDown}
-                        onMouseUp={handleResetMouseUp}
-                        onMouseLeave={handleResetMouseLeave}
-                        onTouchStart={handleResetMouseDown}
-                        onTouchEnd={handleResetMouseUp}
-                        title="長押しでリセット"
-                    >
-                        <span
-                            className={
-                                styles.resetProgressCircle +
-                                (resetProgress > 0 ? ' ' + styles.isCharging : '')
-                            }
-                            aria-hidden="true"
-                        >
-                            <svg width="24" height="24" viewBox="0 0 24 24">
-                                {/* チャージ進行度（細め・進行時のみ） */}
-                                {resetProgress > 0 && (
-                                    <circle
-                                        cx="12" cy="12" r="10"
-                                        fill="none"
-                                        stroke="#218bff"
-                                        strokeWidth="2.2"
-                                        strokeLinecap="round"
-                                        strokeDasharray={2 * Math.PI * 10}
-                                        strokeDashoffset={(1 - resetProgress) * 2 * Math.PI * 10}
-                                        style={{ transition: 'stroke-dashoffset 0.05s linear' }}
-                                    />
-                                )}
-                                {/* 中央のリロード（リセット）アイコン */}
-                                <g>
-                                    <path
-                                        d="M12 5a7 7 0 1 1-5.3 2.7"
-                                        fill="none"
-                                        stroke="#218bff"
-                                        strokeWidth="2.2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                    <polyline
-                                        points="6.5,7.5 6.5,4.5 9.5,4.5"
-                                        fill="none"
-                                        stroke="#218bff"
-                                        strokeWidth="2.2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </g>
-                            </svg>
-                        </span>
-                        <span className={styles.hiddenText}>長押しでリセット</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={styles.gyoButton}
-                        onClick={toggleLineNumbers}
-                        aria-pressed={showLineNumbers}
-                        title={showLineNumbers ? '行番号を隠す' : '行番号を表示'}
-                    >
-                        <span aria-hidden="true">#</span>
-                        <span className={styles.hiddenText}>{showLineNumbers ? '行番号を隠す' : '行番号を表示'}</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={styles.gyoButton}
-                        onClick={() => setShowFileStructure(prev => !prev)}
-                        aria-pressed={showFileStructure}
-                        title={showFileStructure ? 'ファイル構造を隠す' : 'ファイル構造を表示'}
-                    >
-                        <span aria-hidden="true">📁</span>
-                        <span className={styles.hiddenText}>{showFileStructure ? 'ファイル構造を隠す' : 'ファイル構造を表示'}</span>
-                    </button>
+                    <Toolbar
+                        resetProgress={resetProgress}
+                        showLineNumbers={showLineNumbers}
+                        showFileStructure={showFileStructure}
+                        onResetMouseDown={handleResetMouseDown}
+                        onResetMouseUp={handleResetMouseUp}
+                        onResetMouseLeave={handleResetMouseLeave}
+                        onToggleLineNumbers={toggleLineNumbers}
+                        onToggleFileStructure={toggleFileStructure}
+                    />
 
                     {visibleEditorConfigs.map((config, index) => {
                         const nextConfig = visibleEditorConfigs[index + 1];
 
                         return (
                             <React.Fragment key={config.key}>
-                                <div className={styles.editorSection} style={{ width: `${sectionWidths[config.key]}%` }}>
-                                    <div className={styles.sectionHeader}>{config.label}</div>
-                                    <div className={styles.editorContainer}>
-                                        <Editor
-                                            height={editorHeight}
-                                            defaultLanguage={config.language}
-                                            value={config.value}
-                                            onChange={config.onChange}
-                                            onMount={config.onMount}
-                                            theme={editorTheme}
-                                            options={{
-                                                minimap: { enabled: false },
-                                                fontSize: 14,
-                                                lineNumbers: showLineNumbers ? 'on' : 'off',
-                                                folding: false,
-                                                padding: { top: 5, bottom: 5 },
-                                                roundedSelection: false,
-                                                wordWrap: 'off',
-                                                tabSize: 2,
-                                                insertSpaces: true,
-                                                scrollBeyondLastLine: false,
-                                            }}
-                                        />
-                                    </div>
-                                </div>
+                                <EditorPanel
+                                    config={config}
+                                    width={sectionWidths[config.key as EditorKey]}
+                                    height={editorHeight}
+                                    theme={editorTheme}
+                                    showLineNumbers={showLineNumbers}
+                                />
                                 {nextConfig ? (
                                     <div
                                         className={styles.resizer}
@@ -584,8 +366,8 @@ export default function CodePreview({
                                         aria-orientation="vertical"
                                         aria-label={`${config.label} と ${nextConfig.label} の幅を調整`}
                                         tabIndex={0}
-                                        onMouseDown={event => handleMouseDown(event, config.key, nextConfig.key)}
-                                        onKeyDown={event => handleResizerKeyDown(event, config.key, nextConfig.key)}
+                                        onMouseDown={event => handleMouseDown(event, config.key as EditorKey, nextConfig.key as EditorKey)}
+                                        onKeyDown={event => handleResizerKeyDown(event, config.key as EditorKey, nextConfig.key as EditorKey)}
                                         onDoubleClick={event => {
                                             event.preventDefault();
                                             resetSectionWidthsToAuto();
@@ -604,31 +386,58 @@ export default function CodePreview({
                     <div className={styles.previewSection}>
                         <div className={styles.sectionHeader}>プレビュー</div>
                         <div className={styles.previewContainer}>
-                            {renderPreviewIframe(true)}
+                            <PreviewPanel
+                                iframeRef={iframeRef}
+                                iframeKey={iframeKey}
+                                htmlCode={htmlCode}
+                                cssCode={cssCode}
+                                jsCode={jsCode}
+                                showPreview={showPreview}
+                                showConsole={showConsole}
+                                showHTMLEditor={showHTMLEditor}
+                                showJSEditor={showJSEditor}
+                                imageBasePath={imageBasePath}
+                                resolvedImages={resolvedImages}
+                                cssPath={cssPath}
+                                jsPath={jsPath}
+                                resolvedHtmlPath={resolvedHtmlPath}
+                                resolvedCssPath={resolvedCssPath}
+                                resolvedJsPath={resolvedJsPath}
+                                previewHeight={previewHeight}
+                                minHeight={minHeight}
+                                visible={true}
+                            />
                         </div>
                     </div>
                 ) : (
                     (showHTMLEditor || showCSSEditor || showJSEditor || showConsole) && (
-                        <div style={{ display: 'none' }}>{renderPreviewIframe(false)}</div>
+                        <div style={{ display: 'none' }}>
+                            <PreviewPanel
+                                iframeRef={iframeRef}
+                                iframeKey={iframeKey}
+                                htmlCode={htmlCode}
+                                cssCode={cssCode}
+                                jsCode={jsCode}
+                                showPreview={showPreview}
+                                showConsole={showConsole}
+                                showHTMLEditor={showHTMLEditor}
+                                showJSEditor={showJSEditor}
+                                imageBasePath={imageBasePath}
+                                resolvedImages={resolvedImages}
+                                cssPath={cssPath}
+                                jsPath={jsPath}
+                                resolvedHtmlPath={resolvedHtmlPath}
+                                resolvedCssPath={resolvedCssPath}
+                                resolvedJsPath={resolvedJsPath}
+                                previewHeight={previewHeight}
+                                minHeight={minHeight}
+                                visible={false}
+                            />
+                        </div>
                     )
                 )}
                 {showConsole && (
-                    <div className={styles.consoleSection}>
-                        <div className={styles.sectionHeader}>コンソール</div>
-                        <div className={styles.consoleContainer}>
-                            {consoleLogs.length === 0 ? (
-                                <div className={styles.consolePlaceholder}>ここに console.log の結果が表示されます</div>
-                            ) : (
-                                consoleLogs.map((log, index) => (
-                                    <div key={index} className={styles.consoleLine}>
-                                        <span className={styles.consoleBullet}>▶</span>
-                                        <span>{log}</span>
-                                    </div>
-                                ))
-                            )
-                            }
-                        </div>
-                    </div>
+                    <ConsolePanel logs={consoleLogs} />
                 )}
             </div>
         </div>
