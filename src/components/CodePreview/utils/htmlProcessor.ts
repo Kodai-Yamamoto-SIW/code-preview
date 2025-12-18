@@ -24,12 +24,21 @@ export const processImagePaths = (code: string, imageBasePath?: string, resolved
         if (base) {
             return `${base}${path}`;
         }
-        
+
         return path;
     };
 
-    return code.replace(/(src|href|srcset)=(["'])(.*?)\2/g, (match, attr, quote, value) => {
-        if (attr === 'srcset') {
+    // 属性値の置換 (src, href, srcset)
+    // (^|[\s"'>\/])(src|href|srcset)\s*=\s*(["'])(.*?)\3
+    // (^|[\s"'>\/]): 属性名の前は空白、クォート、タグ終了、スラッシュ、または行頭 (data-srcなどを除外)
+    // (src|href|srcset): 対象の属性
+    // \s*: =の前後のスペースを許容
+    // (["']): クォートをキャプチャ
+    // (.*?): 値をキャプチャ (非貪欲)
+    // \3: 同じクォートで閉じる
+    // \s*=\s* をキャプチャして元のスペースを保持する
+    return code.replace(new RegExp('(^|[\\s"\'>/])(src|href|srcset)(\\s*=\\s*)(["\'])(.*?)\\4', 'gi'), (match, prefix, attr, equals, quote, value) => {
+        if (attr.toLowerCase() === 'srcset') {
             const newValue = value.split(',').map((part: string) => {
                 const trimmed = part.trim();
                 const spaceIndex = trimmed.indexOf(' ');
@@ -40,9 +49,9 @@ export const processImagePaths = (code: string, imageBasePath?: string, resolved
                 const descriptor = trimmed.slice(spaceIndex);
                 return resolvePath(url) + descriptor;
             }).join(', ');
-            return `${attr}=${quote}${newValue}${quote}`;
+            return `${prefix}${attr}${equals}${quote}${newValue}${quote}`;
         }
-        return `${attr}=${quote}${resolvePath(value)}${quote}`;
+        return `${prefix}${attr}${equals}${quote}${resolvePath(value)}${quote}`;
     });
 };
 
@@ -56,39 +65,40 @@ export const resolveFilePaths = (html: string, cssPath?: string, cssCode?: strin
 
     // CSSファイルのパスを解決
     if (cssPath && cssCode) {
-        // <link href="..." rel="stylesheet"> を検索して置き換え
-        const linkRegex = new RegExp(
-            `<link\\s+[^>]*href=["']${cssPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*>`,
-            'gi'
-        );
-        let replaced = false;
-        processed = processed.replace(linkRegex, () => {
-            replaced = true;
-            return `<style data-from-file="${cssPath}">\n${cssCode}\n</style>`;
-        });
+        // <link ...> を全て検索
+        processed = processed.replace(/<link\s+[^>]*>/gi, (match) => {
+            // href属性のチェック
+            const hrefRegex = new RegExp(`href\\s*=\\s*["']${cssPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`, 'i');
+            // rel="stylesheet" のチェック (rel='stylesheet' も可)
+            const relRegex = /rel\s*=\s*["']stylesheet["']/i;
 
-        if (!replaced) {
-            // 逆順も対応: rel="stylesheet" href="..."
-            const linkRegex2 = new RegExp(
-                `<link\\s+[^>]*rel=["']stylesheet["'][^>]*href=["']${cssPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*>`,
-                'gi'
-            );
-            processed = processed.replace(linkRegex2, () => {
+            if (hrefRegex.test(match) && relRegex.test(match)) {
                 return `<style data-from-file="${cssPath}">\n${cssCode}\n</style>`;
-            });
-        }
+            }
+            return match;
+        });
     }
 
     // JavaScriptファイルのパスを解決
     if (jsPath && jsCode) {
-        // <script src="..."></script> を検索して置き換え
-        const scriptRegex = new RegExp(
-            `<script\\s+[^>]*src=["']${jsPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*>\\s*</script>`,
-            'gi'
-        );
-        processed = processed.replace(scriptRegex, () => {
-            jsInjected = true;
-            return `<script data-from-file="${jsPath}">\n${jsCode}\n</script>`;
+        // <script ...>...</script> を検索
+        // 注意: <script>タグは中身がある場合とない場合があるが、srcがある場合は中身は空のはず（または無視される）
+        // しかし、正規表現で <script ...>...</script> をマッチさせるのは難しい（ネストなど）。
+        // ここでは src属性を持つ script タグを対象とする。
+        // <script src="...">...</script> または <script src="..."></script>
+
+        // シンプルに <script ... src="...">...</script> を探す
+        // .*? は改行を含まないが、sフラグ(dotAll)がない場合。JSのRegExpでは [\s\S]*? を使う。
+
+        const scriptRegex = /<script\s+([^>]*?)>([\s\S]*?)<\/script>/gi;
+
+        processed = processed.replace(scriptRegex, (match, attrs, _content) => {
+            const srcRegex = new RegExp(`src\\s*=\\s*["']${jsPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`, 'i');
+            if (srcRegex.test(attrs)) {
+                jsInjected = true;
+                return `<script data-from-file="${jsPath}">\n${jsCode}\n</script>`;
+            }
+            return match;
         });
     }
 

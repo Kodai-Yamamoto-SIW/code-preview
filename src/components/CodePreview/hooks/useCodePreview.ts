@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import type { editor } from 'monaco-editor';
-import { CodePreviewProps, EditorDefinition } from '../types';
+import { CodePreviewProps } from '../types';
 import { useSourceCodeStore } from './useSourceCodeStore';
 import { useEditorResize } from './useEditorResize';
 import { useEditorHeight } from './useEditorHeight';
@@ -11,6 +11,7 @@ import { useEnsureNewlines } from './useEnsureNewlines';
 import { useResizeTargets } from './useResizeTargets';
 import { useCodePreviewReset } from './useCodePreviewReset';
 import { useEditorConfigs } from './useEditorConfigs';
+import { useEditorDefinitions } from './useEditorDefinitions';
 import { resolveVisibility } from '../utils/visibility';
 
 export const useCodePreview = (props: CodePreviewProps) => {
@@ -85,35 +86,17 @@ export const useCodePreview = (props: CodePreviewProps) => {
     const showConsole = resolveVisibility(consoleLogs.length > 0, consoleVisible);
 
     // Editors Definition
-    const editors: EditorDefinition[] = useMemo(() => [
-        {
-            key: 'html',
-            label: 'HTML',
-            language: 'html',
-            code: htmlCode,
-            setCode: setHtmlCode,
-            visible: showHTMLEditor,
-            ref: htmlEditorRef
-        },
-        {
-            key: 'css',
-            label: 'CSS',
-            language: 'css',
-            code: cssCode,
-            setCode: setCssCode,
-            visible: showCSSEditor,
-            ref: cssEditorRef
-        },
-        {
-            key: 'js',
-            label: 'JavaScript',
-            language: 'javascript',
-            code: jsCode,
-            setCode: setJsCode,
-            visible: showJSEditor,
-            ref: jsEditorRef
-        }
-    ], [htmlCode, cssCode, jsCode, setHtmlCode, setCssCode, setJsCode, showHTMLEditor, showCSSEditor, showJSEditor]);
+    const editors = useEditorDefinitions({
+        htmlCode, setHtmlCode,
+        cssCode, setCssCode,
+        jsCode, setJsCode,
+        showHTMLEditor,
+        showCSSEditor,
+        showJSEditor,
+        htmlEditorRef,
+        cssEditorRef,
+        jsEditorRef
+    });
 
     // Hooks
     const { editorHeight } = useEditorHeight({
