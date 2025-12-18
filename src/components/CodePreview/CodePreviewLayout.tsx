@@ -119,24 +119,26 @@ export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
                             <PreviewPanel
                                 iframeRef={iframeRef}
                                 iframeKey={state.iframeKey}
-                                iframeId={state.iframeId}
-                                htmlCode={state.htmlCode}
-                                cssCode={state.cssCode}
-                                jsCode={state.jsCode}
-                                showPreview={visibility.showPreview}
-                                showConsole={visibility.showConsole}
-                                showHTMLEditor={visibility.showHTMLEditor}
-                                showJSEditor={visibility.showJSEditor}
-                                imageBasePath={imageBasePath}
-                                resolvedImages={state.resolvedImages}
-                                cssPath={cssPath}
-                                jsPath={jsPath}
-                                resolvedHtmlPath={state.resolvedHtmlPath}
-                                resolvedCssPath={state.resolvedCssPath}
-                                resolvedJsPath={state.resolvedJsPath}
                                 previewHeight={layout.previewHeight}
                                 minHeight={minHeight}
                                 visible={true}
+                                generatorOptions={{
+                                    htmlCode: state.htmlCode,
+                                    cssCode: state.cssCode,
+                                    jsCode: state.jsCode,
+                                    showPreview: visibility.showPreview,
+                                    showConsole: visibility.showConsole,
+                                    showHTMLEditor: visibility.showHTMLEditor,
+                                    showJSEditor: visibility.showJSEditor,
+                                    imageBasePath: imageBasePath,
+                                    resolvedImages: state.resolvedImages,
+                                    cssPath: cssPath,
+                                    jsPath: jsPath,
+                                    resolvedHtmlPath: state.resolvedHtmlPath,
+                                    resolvedCssPath: state.resolvedCssPath,
+                                    resolvedJsPath: state.resolvedJsPath,
+                                    iframeId: state.iframeId
+                                }}
                             />
                         </div>
                     </div>
