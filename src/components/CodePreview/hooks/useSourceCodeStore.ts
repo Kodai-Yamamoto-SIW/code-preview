@@ -26,6 +26,8 @@ export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
         return `${sourceId}:${window.location.pathname}`;
     }, [sourceId]);
 
+    const storedState = (scopedSourceId && store) ? store.get(scopedSourceId) : undefined;
+
     const {
         resolvedHTML,
         resolvedCSS,
@@ -37,7 +39,7 @@ export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
         hasInitialHTML,
         hasInitialCSS,
         hasInitialJS
-    } = resolveInitialSource({ ...props, sourceId: scopedSourceId });
+    } = resolveInitialSource({ ...props, sourceId: scopedSourceId, storedState });
 
     const [htmlCode, setHtmlCode] = useState(ensureTrailingNewline(resolvedHTML || ''));
     const [cssCode, setCssCode] = useState(ensureTrailingNewline(resolvedCSS || ''));

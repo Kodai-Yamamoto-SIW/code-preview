@@ -1,7 +1,8 @@
-import { getStoredSource } from '../store';
+import { SourceCodeState } from '../types';
 
 interface ResolveSourceProps {
     sourceId?: string;
+    storedState?: SourceCodeState;
     initialHTML?: string;
     initialCSS?: string;
     initialJS?: string;
@@ -12,7 +13,7 @@ interface ResolveSourceProps {
 }
 
 export const resolveInitialSource = (props: ResolveSourceProps) => {
-    const { sourceId, initialHTML, initialCSS, initialJS, images, htmlPath, cssPath, jsPath } = props;
+    const { sourceId, storedState, initialHTML, initialCSS, initialJS, images, htmlPath, cssPath, jsPath } = props;
 
     const hasInitialHTML = initialHTML !== undefined;
     const hasInitialCSS = initialCSS !== undefined;
@@ -26,17 +27,15 @@ export const resolveInitialSource = (props: ResolveSourceProps) => {
     let resolvedCssPath = cssPath;
     let resolvedJsPath = jsPath;
 
-    if (sourceId) {
-        const stored = getStoredSource(sourceId);
-        if (stored) {
-            if (!hasInitialHTML && stored.html) resolvedHTML = stored.html;
-            if (!hasInitialCSS && stored.css) resolvedCSS = stored.css;
-            if (!hasInitialJS && stored.js) resolvedJS = stored.js;
-            if (!images && stored.images) resolvedImages = stored.images;
-            if (!htmlPath && stored.htmlPath) resolvedHtmlPath = stored.htmlPath;
-            if (!cssPath && stored.cssPath) resolvedCssPath = stored.cssPath;
-            if (!jsPath && stored.jsPath) resolvedJsPath = stored.jsPath;
-        }
+    if (sourceId && storedState) {
+        const stored = storedState;
+        if (!hasInitialHTML && stored.html) resolvedHTML = stored.html;
+        if (!hasInitialCSS && stored.css) resolvedCSS = stored.css;
+        if (!hasInitialJS && stored.js) resolvedJS = stored.js;
+        if (!images && stored.images) resolvedImages = stored.images;
+        if (!htmlPath && stored.htmlPath) resolvedHtmlPath = stored.htmlPath;
+        if (!cssPath && stored.cssPath) resolvedCssPath = stored.cssPath;
+        if (!jsPath && stored.jsPath) resolvedJsPath = stored.jsPath;
     }
 
     return {
