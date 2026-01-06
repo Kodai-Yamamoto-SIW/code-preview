@@ -1,5 +1,5 @@
 {
-  "name": "@kodai-yamamoto-siw/code-preview",
+  "name": "@metyatech/code-preview",
   "version": "0.1.11",
   "description": "Docusaurus用のシンプルなHTML/CSSライブプレビューコンポーネント",
   "private": false,
@@ -63,6 +63,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Kodai-Yamamoto-SIW/programming-course-docs"
+    "url": "https://github.com/metyatech/programming-course-docs"
   }
 }

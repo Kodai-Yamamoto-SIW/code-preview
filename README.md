@@ -1,4 +1,4 @@
-# @kodai-yamamoto-siw/code-preview
+# @metyatech/code-preview
 
 DocusaurusやReactサイトで使える、初心者向けのHTML/CSSライブプレビュー用コンポーネントです。
 
@@ -9,15 +9,15 @@ DocusaurusやReactサイトで使える、初心者向けのHTML/CSSライブプ
 
 ## インストール
 ```
-pnpm add @kodai-yamamoto-siw/code-preview
+pnpm add @metyatech/code-preview
 # or
-npm i @kodai-yamamoto-siw/code-preview
+npm i @metyatech/code-preview
 ```
 
 ## 使い方
 ```tsx
-import { CodePreview } from '@kodai-yamamoto-siw/code-preview';
-import '@kodai-yamamoto-siw/code-preview/styles.css';
+import { CodePreview } from '@metyatech/code-preview';
+import '@metyatech/code-preview/styles.css';
 
 export default function Sample() {
   return (

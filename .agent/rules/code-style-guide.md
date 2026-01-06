@@ -2,7 +2,7 @@
 trigger: always_on
 ---
 
-# AIへのソースコード作成指示書 (@kodai-yamamoto-siw/code-preview)
+# AIへのソースコード作成指示書 (@metyatech/code-preview)
 
 このプロジェクトは、Docusaurusなどで使用するための **React + TypeScript** 製のコードプレビューライブラリです。
 以下のガイドラインに従って、保守性が高く、バグの少ないコードを作成してください。
