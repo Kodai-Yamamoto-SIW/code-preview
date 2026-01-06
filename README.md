@@ -1,63 +1,68 @@
 # @metyatech/code-preview
 
-DocusaurusやReactサイトで使える、初心者向けのHTML/CSSライブプレビュー用コンポーネントです。
+An HTML/CSS/JS live preview component for Docusaurus and React sites (beginner-friendly).
 
-## 特長
-- HTML/CSS/JavaScript を並べて編集し、下段でプレビュー
-- ダーク/ライトに対応（propで指定）
-- Monaco Editor採用
+## Features
 
-## セットアップ
+- Edit HTML/CSS/JavaScript side-by-side with a preview pane
+- Light/Dark themes (via props)
+- Powered by Monaco Editor
 
-### インストール
-```
+## Setup
+
+### Installation
+
+```bash
 pnpm add @metyatech/code-preview
 # or
 npm i @metyatech/code-preview
 ```
 
-## 使い方
+## Usage
+
 ```tsx
 import { CodePreview } from '@metyatech/code-preview';
 import '@metyatech/code-preview/styles.css';
 
 export default function Sample() {
   return (
-    <CodePreview 
-      initialHTML="<p>こんにちは</p>"
+    <CodePreview
+      initialHTML="<p>Hello</p>"
       initialCSS="p { color: red; }"
       initialJS="document.querySelector('p')?.addEventListener('click', () => alert('clicked'))"
-      title="サンプル"
-  theme="light"
-  fileStructureVisible={true} // ファイル構造エクスプローラを初期表示
+      title="Sample"
+      theme="light"
+      fileStructureVisible={true}
     />
   );
 }
 ```
 
-- initialHTML: HTMLのbody部分だけを入れてください（<!DOCTYPE>や<html>は不要）
-- initialCSS: CSSを入れるとCSSエディタが表示されます
-- initialJS: JavaScript を入れると JS エディタが表示され、プレビューに `<script>` として挿入されます
-- imageBasePath: 画像を相対パスで読みたいときのベースパス
-- theme: 'light' | 'dark'
-- htmlVisible / cssVisible / jsVisible: true または false を渡すと、それぞれのエディタ表示を強制的に切り替えられます（省略時は自動判定）
-- previewVisible: プレビュー領域の表示/非表示を制御できます（省略時は HTML エディタの状態に追従）
-- consoleVisible: コンソール領域の表示/非表示を制御できます（true の場合はログが無くても表示されます）
-- fileStructureVisible: ファイル構造（エクスプローラ）の初期表示状態を制御できます（trueで初期表示、falseで非表示）
-- sourceId: 同じコードやファイル構造を複数の CodePreview で共有するためのID（詳細は下記）
-- htmlPath / cssPath / jsPath: ファイル名・パスを指定すると、ファイル構造エクスプローラに反映され、HTML/CSS/JSの相対参照も可能
-- images: 画像ファイルのパスとURLのマップ。例: images={{ "img/sample.png": "/img/sample.png" }}
-### ファイル構造エクスプローラ・仮想ファイルシステム
+- `initialHTML`: only the body contents (no `<!DOCTYPE>` / `<html>` required)
+- `initialCSS`: when provided, the CSS editor is shown
+- `initialJS`: when provided, the JS editor is shown and injected as a `<script>` in the preview
+- `imageBasePath`: base path for resolving relative image paths
+- `theme`: `'light' | 'dark'`
+- `htmlVisible` / `cssVisible` / `jsVisible`: force each editor panel visibility (default: auto)
+- `previewVisible`: toggle the preview pane (default: follows HTML editor state)
+- `consoleVisible`: toggle the console pane (when `true`, it shows even if there are no logs)
+- `fileStructureVisible`: initial visibility for the file explorer pane
+- `sourceId`: share code/file structure across multiple `CodePreview` instances
+- `htmlPath` / `cssPath` / `jsPath`: sets virtual filenames/paths and enables relative imports
+- `images`: map from virtual path to URL (e.g. `images={{ "img/sample.png": "/img/sample.png" }}`)
 
-ファイル名やパス（htmlPath, cssPath, jsPath, images）を指定すると、画面上にファイル構造エクスプローラが表示されます。
+### File Explorer / Virtual File System
 
-- 例: `<CodePreview cssPath="css/style.css" images={{ "img/fence.png": "/static/img/fence.png" }} ... />`
-- ファイル構造は複数のCodePreview間（sourceId指定時）でも自動で共有されます
-- 画像もファイル構造に表示され、HTML/CSS/JSから相対パスで参照できます
-- CSSの `url(...)` も自動でimagesマッピングに変換されます
-- fetchや<img src=...>も仮想ファイル経由で動作します
+Providing filenames/paths (`htmlPath`, `cssPath`, `jsPath`, `images`) shows a file explorer UI.
 
-#### 画像の使い方例
+- Example: `<CodePreview cssPath="css/style.css" images={{ "img/fence.png": "/static/img/fence.png" }} ... />`
+- File structure is shared across instances when `sourceId` is provided
+- Images appear in the file tree and are resolvable via relative paths from HTML/CSS/JS
+- CSS `url(...)` is automatically transformed to the `images` mapping
+- `fetch` and `<img src=...>` also work via the virtual files
+
+#### Images Example
+
 ```tsx
 <CodePreview
   initialHTML={`<img src="img/fence.png">`}
@@ -67,66 +72,53 @@ export default function Sample() {
 />
 ```
 
-### パネル表示制御
+### Panel Visibility Control
 
-- htmlVisible, cssVisible, jsVisible, previewVisible, consoleVisible で各パネルの表示/非表示を外部から制御できます
-- fileStructureVisible でファイル構造の初期表示状態を制御できます
+- Use `htmlVisible`, `cssVisible`, `jsVisible`, `previewVisible`, `consoleVisible` to control panel visibility
+- Use `fileStructureVisible` to control the initial file explorer state
 
-### 複数インスタンス・教材演習での利用
+### Sharing Code with `sourceId`
 
-- sourceId を指定すると、コード・ファイル構造・画像もすべて共有されます
-- 2つ目以降のCodePreviewでは、initialHTML/CSS/JSやimages、パス指定を省略しても1つ目の設定が自動で反映されます
-- previewVisible: プレビュー領域の表示/非表示を制御できます（省略時は HTML エディタの状態に追従）
-- consoleVisible: コンソール領域の表示/非表示を制御できます（true の場合はログが無くても表示されます）
-- sourceId: 同じコードを複数の CodePreview で共有するためのID（詳細は下記）
-
-### sourceId による複数インスタンスでのコード共有
-
-同じ `sourceId` を持つ複数の `CodePreview` を配置すると、最初のインスタンスで指定した `initialHTML/CSS/JS` が2つ目以降でも自動的に使われます。
+When multiple `CodePreview` components share the same `sourceId`, the first instance defines the initial code/file structure, and subsequent instances reuse it by default.
 
 ```tsx
-// 1つ目: コードを定義
-<CodePreview 
+// 1st: define shared code
+<CodePreview
   sourceId="sample-code"
-  initialHTML="<p>共有コード</p>"
+  initialHTML="<p>Shared</p>"
   initialCSS="p { color: blue; }"
-  title="編集例1"
+  title="Example 1"
 />
 
-// 2つ目: sourceIdのみ指定（コードは1つ目と同じ）
-<CodePreview 
-  sourceId="sample-code"
-  title="編集例2"
-/>
+// 2nd: reuse by sourceId only
+<CodePreview sourceId="sample-code" title="Example 2" />
 
-// 3つ目: sourceIdを指定しつつ、一部を上書きも可能
-<CodePreview 
+// 3rd: override part of the code
+<CodePreview
   sourceId="sample-code"
   initialCSS="p { color: red; }"
-  title="編集例3（CSSだけ変更）"
+  title="Example 3 (CSS override)"
 />
 ```
 
-これにより、同じコードで異なる見せ方（タイトルや表示制御を変える）をする場合に便利です。
+Note: `initialJS` runs as a `<script>` in the preview (no error handling/type checking, since it's for preview use).
 
-メモ:
-- `initialJS` はプレビュー内の `<script>` として実行されます。プレビュー用途のため、エラー処理や型チェックは行いません。
+## Development Commands
 
-## 開発コマンド
+- `npm run build`: build
+- `npm test`: component tests (Chromium/all browsers)
+- `npm run lint`: lint
 
-- `npm run build`: ビルド
-- `npm test`: コンポーネントテスト（Chromium/全ブラウザ）
-- `npm run lint`: 静的解析
+## Environment Variables/Settings
 
-## 環境変数/設定
+None.
 
-特になし。
-
-## 公開/デプロイ
+## Release/Deploy
 
 ```bash
 npm publish
 ```
 
-## ライセンス
+## License
+
 MIT
