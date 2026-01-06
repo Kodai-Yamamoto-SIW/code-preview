@@ -7,7 +7,9 @@ DocusaurusやReactサイトで使える、初心者向けのHTML/CSSライブプ
 - ダーク/ライトに対応（propで指定）
 - Monaco Editor採用
 
-## インストール
+## セットアップ
+
+### インストール
 ```
 pnpm add @metyatech/code-preview
 # or
@@ -109,6 +111,22 @@ export default function Sample() {
 
 メモ:
 - `initialJS` はプレビュー内の `<script>` として実行されます。プレビュー用途のため、エラー処理や型チェックは行いません。
+
+## 開発コマンド
+
+- `npm run build`: ビルド
+- `npm test`: コンポーネントテスト（Chromium/全ブラウザ）
+- `npm run lint`: 静的解析
+
+## 環境変数/設定
+
+特になし。
+
+## 公開/デプロイ
+
+```bash
+npm publish
+```
 
 ## ライセンス
 MIT
