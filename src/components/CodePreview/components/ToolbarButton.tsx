@@ -1,19 +1,19 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import styles from '../styles.module.css';
 
 interface ToolbarButtonProps {
     onClick: () => void;
     pressed: boolean;
     label: string;
-    icon: React.ReactNode;
+    icon: ReactNode;
 }
 
-export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
+export const ToolbarButton = ({
     onClick,
     pressed,
     label,
     icon
-}) => {
+}: ToolbarButtonProps) => {
     return (
         <button
             type="button"

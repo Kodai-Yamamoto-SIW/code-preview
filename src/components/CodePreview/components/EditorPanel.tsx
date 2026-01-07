@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import Editor, { EditorProps } from '@monaco-editor/react';
 import styles from '../styles.module.css';
 
@@ -10,7 +10,6 @@ interface EditorPanelProps {
     height: string;
     theme: string;
     showLineNumbers: boolean;
-    options?: EditorProps['options'];
 }
 
 const DEFAULT_EDITOR_OPTIONS: EditorProps['options'] = {
@@ -25,19 +24,17 @@ const DEFAULT_EDITOR_OPTIONS: EditorProps['options'] = {
     scrollBeyondLastLine: false,
 };
 
-export const EditorPanel: React.FC<EditorPanelProps> = ({
+export const EditorPanel = ({
     config,
     width,
     height,
     theme,
-    showLineNumbers,
-    options
-}) => {
+    showLineNumbers
+}: EditorPanelProps) => {
     const mergedOptions = useMemo(() => ({
         ...DEFAULT_EDITOR_OPTIONS,
-        ...options,
         lineNumbers: showLineNumbers ? 'on' : 'off',
-    } as EditorProps['options']), [showLineNumbers, options]);
+    } as EditorProps['options']), [showLineNumbers]);
 
     return (
         <div className={styles.editorSection} style={{ width: `${width}%` }}>

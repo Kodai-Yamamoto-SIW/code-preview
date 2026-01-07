@@ -1,4 +1,3 @@
-import React from 'react';
 import styles from '../styles.module.css';
 
 interface ResetButtonProps {
@@ -8,12 +7,12 @@ interface ResetButtonProps {
     onMouseLeave: () => void;
 }
 
-export const ResetButton: React.FC<ResetButtonProps> = ({
+export const ResetButton = ({
     resetProgress,
     onMouseDown,
     onMouseUp,
     onMouseLeave
-}) => {
+}: ResetButtonProps) => {
     return (
         <button
             type="button"

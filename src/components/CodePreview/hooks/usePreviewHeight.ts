@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { EditorDefinition } from '../types';
 
 interface UsePreviewHeightProps {
-    minHeight: string;
+    minHeightPx: number;
     showPreview: boolean;
     iframeRef: React.RefObject<HTMLIFrameElement | null>;
     iframeId: string;
@@ -12,24 +12,24 @@ interface UsePreviewHeightProps {
 const MAX_PREVIEW_HEIGHT = 800;
 
 export const usePreviewHeight = ({
-    minHeight,
+    minHeightPx,
     showPreview,
     iframeRef,
     iframeId,
     editors
 }: UsePreviewHeightProps) => {
-    const [previewHeight, setPreviewHeight] = useState(minHeight);
+    const [previewHeight, setPreviewHeight] = useState(`${minHeightPx}px`);
     // Track the maximum height ever reached (only grows, never shrinks)
-    const maxHeightRef = useRef(parseInt(minHeight));
+    const maxHeightRef = useRef(minHeightPx);
 
     // Reset max height when code changes (new iframe content)
     const resetMaxHeight = useCallback(() => {
-        maxHeightRef.current = parseInt(minHeight);
-    }, [minHeight]);
+        maxHeightRef.current = minHeightPx;
+    }, [minHeightPx]);
 
     const calculatePreviewHeight = useCallback(() => {
         const iframe = iframeRef.current;
-        let pHeight = parseInt(minHeight);
+        let pHeight = minHeightPx;
 
         if (iframe) {
             try {
@@ -54,11 +54,11 @@ export const usePreviewHeight = ({
             maxHeightRef.current = pHeight;
         }
 
-        const finalPreviewHeight = Math.max(maxHeightRef.current, parseInt(minHeight));
+        const finalPreviewHeight = Math.max(maxHeightRef.current, minHeightPx);
         const limitedPreviewHeight = Math.min(finalPreviewHeight, MAX_PREVIEW_HEIGHT);
 
         setPreviewHeight(limitedPreviewHeight + 'px');
-    }, [iframeRef, minHeight]);
+    }, [iframeRef, minHeightPx]);
 
     const updatePreviewHeight = useCallback(() => {
         if (!showPreview) return;
@@ -112,7 +112,7 @@ export const usePreviewHeight = ({
             resetMaxHeight();
             updatePreviewHeight();
         }
-    }, [editors, minHeight, showPreview, resetMaxHeight, updatePreviewHeight]);
+    }, [editors, minHeightPx, showPreview, resetMaxHeight, updatePreviewHeight]);
 
     // Window resize
     useEffect(() => {

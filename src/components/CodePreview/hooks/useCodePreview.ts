@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import type { editor } from 'monaco-editor';
 import { CodePreviewProps } from '../types';
 import { useSourceCodeStore } from './useSourceCodeStore';
@@ -13,13 +13,14 @@ import { useCodePreviewReset } from './useCodePreviewReset';
 import { useEditorConfigs } from './useEditorConfigs';
 import { useEditorDefinitions } from './useEditorDefinitions';
 import { resolveVisibility } from '../utils/visibility';
+import { normalizeMinHeight } from '../utils/size-utils';
 
 export const useCodePreview = (props: CodePreviewProps) => {
     const {
         initialHTML,
         initialCSS,
         initialJS,
-        minHeight = '200px',
+        minHeight,
         theme = 'light',
         htmlVisible,
         cssVisible,
@@ -27,12 +28,13 @@ export const useCodePreview = (props: CodePreviewProps) => {
         previewVisible,
         consoleVisible,
         sourceId,
-        htmlPath = 'index.html',
+        htmlPath,
         cssPath,
         jsPath,
         images,
         fileStructureVisible,
     } = props;
+    const defaultHtmlPath = htmlPath ?? 'index.html';
 
     // Refs
     const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -41,17 +43,7 @@ export const useCodePreview = (props: CodePreviewProps) => {
     const htmlEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const cssEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const jsEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-
-    // State
-    const [showFileStructure, setShowFileStructure] = useState(() => {
-        if (fileStructureVisible !== undefined) {
-            return !!fileStructureVisible;
-        }
-        return !!(images && Object.keys(images).length > 0);
-    });
-    const [iframeKey, setIframeKey] = useState(0);
-    // iframeIdを一度だけ生成して保持する
-    const [iframeId] = useState(() => `iframe-${Math.random().toString(36).substr(2, 9)}`);
+    const fileStructureToggledRef = useRef(false);
 
     // Store
     const {
@@ -72,17 +64,36 @@ export const useCodePreview = (props: CodePreviewProps) => {
         initialCSS,
         initialJS,
         images,
-        htmlPath,
+        htmlPath: defaultHtmlPath,
         cssPath,
         jsPath
     });
+
+    const hasFileStructureInputs = !!(
+        (resolvedImages && Object.keys(resolvedImages).length > 0) ||
+        htmlPath !== undefined ||
+        cssPath !== undefined ||
+        jsPath !== undefined
+    );
+
+    // State
+    const [showFileStructure, setShowFileStructure] = useState(() => {
+        if (fileStructureVisible !== undefined) {
+            return !!fileStructureVisible;
+        }
+        return hasFileStructureInputs;
+    });
+    const [iframeKey, setIframeKey] = useState(0);
+    // iframeIdを一度だけ生成して保持する
+    const [iframeId] = useState(() => `iframe-${Math.random().toString(36).substr(2, 9)}`);
 
     const { consoleLogs, setConsoleLogs } = useConsoleLogs(iframeRef, [jsCode, htmlCode]);
 
     const showHTMLEditor = resolveVisibility(resolvedHTML !== undefined, htmlVisible);
     const showCSSEditor = resolveVisibility(resolvedCSS !== undefined, cssVisible);
     const showJSEditor = resolveVisibility(resolvedJS !== undefined, jsVisible);
-    const showPreview = resolveVisibility(showHTMLEditor, previewVisible);
+    const hasPreviewContent = resolvedHTML !== undefined || showHTMLEditor;
+    const showPreview = resolveVisibility(hasPreviewContent, previewVisible);
     const showConsole = resolveVisibility(consoleLogs.length > 0, consoleVisible);
 
     // Editors Definition
@@ -98,14 +109,16 @@ export const useCodePreview = (props: CodePreviewProps) => {
         jsEditorRef
     });
 
+    const minHeightConfig = normalizeMinHeight(minHeight);
+
     // Hooks
     const { editorHeight } = useEditorHeight({
-        minHeight,
+        minHeightPx: minHeightConfig.px,
         editors
     });
 
     const { previewHeight, updatePreviewHeight } = usePreviewHeight({
-        minHeight,
+        minHeightPx: minHeightConfig.px,
         showPreview,
         iframeRef,
         iframeId,
@@ -136,6 +149,7 @@ export const useCodePreview = (props: CodePreviewProps) => {
     });
 
     const toggleFileStructure = useCallback(() => {
+        fileStructureToggledRef.current = true;
         setShowFileStructure(prev => !prev);
     }, []);
 
@@ -166,6 +180,17 @@ export const useCodePreview = (props: CodePreviewProps) => {
     useEnsureNewlines({ editors });
 
     const editorTheme = theme === 'dark' ? 'vs-dark' : 'light';
+
+    useEffect(() => {
+        if (fileStructureVisible !== undefined) {
+            setShowFileStructure(!!fileStructureVisible);
+            return;
+        }
+        if (fileStructureToggledRef.current) return;
+        if (hasFileStructureInputs) {
+            setShowFileStructure(true);
+        }
+    }, [fileStructureVisible, hasFileStructureInputs]);
 
     return {
         elementRefs: {
@@ -204,6 +229,7 @@ export const useCodePreview = (props: CodePreviewProps) => {
             isResizing,
             visibleEditorConfigs,
             showLineNumbers,
+            minHeightCss: minHeightConfig.css,
         },
         handlers: {
             handleMouseDown,

@@ -1,24 +1,24 @@
-import React from 'react';
+import type { CSSProperties, RefObject } from 'react';
 import styles from '../styles.module.css';
 import { generatePreviewDocument, PreviewGeneratorOptions } from '../utils/previewGenerator';
 
 interface PreviewPanelProps {
-    iframeRef: React.RefObject<HTMLIFrameElement | null>;
+    iframeRef: RefObject<HTMLIFrameElement | null>;
     iframeKey: number;
     previewHeight: string;
-    minHeight: string;
+    minHeightCss: string;
     visible: boolean;
     generatorOptions: PreviewGeneratorOptions;
 }
 
-export const PreviewPanel: React.FC<PreviewPanelProps> = ({
+export const PreviewPanel = ({
     iframeRef,
     iframeKey,
     previewHeight,
-    minHeight,
+    minHeightCss,
     visible,
     generatorOptions
-}) => {
+}: PreviewPanelProps) => {
     return (
         <iframe
             key={`${visible ? 'visible' : 'hidden'}-${iframeKey}`}
@@ -29,8 +29,8 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
             sandbox="allow-scripts allow-same-origin"
             style={
                 visible
-                    ? ({ height: previewHeight, '--min-height': minHeight } as React.CSSProperties)
-                    : ({ display: 'none' } as React.CSSProperties)
+                    ? ({ height: previewHeight, '--min-height': minHeightCss } as CSSProperties)
+                    : ({ display: 'none' } as CSSProperties)
             }
         />
     );

@@ -4,6 +4,7 @@ import { resolveInitialSource } from '../utils/sourceCodeUtils';
 import { useGlobalSourceSync } from './useGlobalSourceSync';
 import { useGlobalSourceProvider } from './useGlobalSourceProvider';
 import { ISourceCodeStore, globalSourceCodeStore } from '../store';
+import type { ImageMap } from '../types';
 
 interface UseSourceCodeStoreProps {
     sourceId?: string;
@@ -11,7 +12,7 @@ interface UseSourceCodeStoreProps {
     initialHTML?: string;
     initialCSS?: string;
     initialJS?: string;
-    images?: { [path: string]: string };
+    images?: ImageMap;
     htmlPath?: string;
     cssPath?: string;
     jsPath?: string;

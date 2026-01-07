@@ -6,7 +6,7 @@ import { EditorDefinition } from '../types';
  * useEditorHeight フックのプロパティ
  */
 interface UseEditorHeightProps {
-    minHeight: string;
+    minHeightPx: number;
     editors: EditorDefinition[];
 }
 
@@ -23,10 +23,10 @@ const HEIGHT_UPDATE_DELAY_MS = 100;
  * エディタの高さを計算・管理するフック
  */
 export const useEditorHeight = ({
-    minHeight,
+    minHeightPx,
     editors
 }: UseEditorHeightProps) => {
-    const [editorHeight, setEditorHeight] = useState(minHeight);
+    const [editorHeight, setEditorHeight] = useState(`${minHeightPx}px`);
 
     const calculateEditorHeight = useCallback(() => {
         const calculateEditorHeightByCode = (code: string, editorRef?: React.MutableRefObject<editor.IStandaloneCodeEditor | null>): number => {
@@ -41,14 +41,11 @@ export const useEditorHeight = ({
             }
 
             // エディタがまだマウントされていない場合のヒューリスティック計算
-            // minHeightを数値としてパース（"200px" -> 200）
-            const minHeightValue = parseInt(minHeight, 10);
-            
-            if (!code) return minHeightValue;
+            if (!code) return minHeightPx;
             
             const lines = code.split('\n').length;
             // 行数 * 行の高さ + パディング で高さを推定
-            return Math.max(lines * EDITOR_LINE_HEIGHT + EDITOR_VERTICAL_PADDING, minHeightValue);
+            return Math.max(lines * EDITOR_LINE_HEIGHT + EDITOR_VERTICAL_PADDING, minHeightPx);
         };
 
         const heights = editors
@@ -57,14 +54,13 @@ export const useEditorHeight = ({
 
         // 表示されているエディタの中で最大の高さを採用
         const maxEditorHeight = heights.length > 0 ? Math.max(...heights) : 0;
-        const minHeightValue = parseInt(minHeight, 10);
-        const finalEditorHeight = Math.max(maxEditorHeight, minHeightValue);
+        const finalEditorHeight = Math.max(maxEditorHeight, minHeightPx);
         
         // 最大高さ制限を適用
         const limitedEditorHeight = Math.min(finalEditorHeight, MAX_EDITOR_HEIGHT);
 
         setEditorHeight(limitedEditorHeight + 'px');
-    }, [editors, minHeight]);
+    }, [editors, minHeightPx]);
 
     const updateEditorHeight = useCallback(() => {
         setTimeout(() => {

@@ -1,6 +1,7 @@
-import React from 'react';
+import type { RefObject } from 'react';
 import styles from '../styles.module.css';
 import { PreviewPanel } from './PreviewPanel';
+import type { ImageMap } from '../types';
 
 interface PreviewSectionProps {
     visibility: {
@@ -15,7 +16,7 @@ interface PreviewSectionProps {
         htmlCode: string;
         cssCode: string;
         jsCode: string;
-        resolvedImages?: { [path: string]: string };
+        resolvedImages?: ImageMap;
         resolvedHtmlPath?: string;
         resolvedCssPath?: string;
         resolvedJsPath?: string;
@@ -24,23 +25,21 @@ interface PreviewSectionProps {
     layout: {
         previewHeight: string;
     };
-    minHeight: string;
-    imageBasePath?: string;
+    minHeightCss: string;
     cssPath?: string;
     jsPath?: string;
-    iframeRef: React.RefObject<HTMLIFrameElement>;
+    iframeRef: RefObject<HTMLIFrameElement | null>;
 }
 
-export const PreviewSection: React.FC<PreviewSectionProps> = ({
+export const PreviewSection = ({
     visibility,
     state,
     layout,
-    minHeight,
-    imageBasePath,
+    minHeightCss,
     cssPath,
     jsPath,
     iframeRef
-}) => {
+}: PreviewSectionProps) => {
     const shouldShow = visibility.showPreview || visibility.showHTMLEditor || visibility.showCSSEditor || visibility.showJSEditor || visibility.showConsole;
 
     if (!shouldShow) {
@@ -55,7 +54,7 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
                     iframeRef={iframeRef}
                     iframeKey={state.iframeKey}
                     previewHeight={layout.previewHeight}
-                    minHeight={minHeight}
+                    minHeightCss={minHeightCss}
                     visible={true}
                     generatorOptions={{
                         htmlCode: state.htmlCode,
@@ -65,7 +64,6 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
                         showConsole: visibility.showConsole,
                         showHTMLEditor: visibility.showHTMLEditor,
                         showJSEditor: visibility.showJSEditor,
-                        imageBasePath: imageBasePath,
                         resolvedImages: state.resolvedImages,
                         cssPath: cssPath,
                         jsPath: jsPath,

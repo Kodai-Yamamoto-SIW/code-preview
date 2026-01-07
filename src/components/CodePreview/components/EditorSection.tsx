@@ -1,15 +1,15 @@
-import React from 'react';
+import { Fragment } from 'react';
+import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, RefObject } from 'react';
 import styles from '../styles.module.css';
 import { Toolbar } from './Toolbar';
 import { EditorPanel } from './EditorPanel';
 import { Resizer } from './Resizer';
 import { EditorKey, EditorConfig } from '../types';
-import type { editor } from 'monaco-editor';
 
 interface EditorSectionProps {
     layout: {
         visibleEditorConfigs: EditorConfig[];
-        sectionWidths: { [key in EditorKey]: string };
+        sectionWidths: Record<EditorKey, number>;
         editorHeight: string;
         showLineNumbers: boolean;
         isResizing: boolean;
@@ -19,8 +19,8 @@ interface EditorSectionProps {
         showFileStructure: boolean;
     };
     handlers: {
-        handleMouseDown: (e: React.MouseEvent, left: EditorKey, right: EditorKey) => void;
-        handleResizerKeyDown: (e: React.KeyboardEvent, left: EditorKey, right: EditorKey) => void;
+        handleMouseDown: (e: ReactMouseEvent, left: EditorKey, right: EditorKey) => void;
+        handleResizerKeyDown: (e: ReactKeyboardEvent<HTMLDivElement>, left: EditorKey, right: EditorKey) => void;
         resetSectionWidthsToAuto: () => void;
         toggleLineNumbers: () => void;
         toggleFileStructure: () => void;
@@ -29,19 +29,17 @@ interface EditorSectionProps {
         handleResetMouseLeave: () => void;
         resetProgress: number;
     };
-    editorOptions?: editor.IEditorConstructionOptions;
-    editorsRowRef: React.RefObject<HTMLDivElement>;
-    editorsRowStyle?: React.CSSProperties;
+    editorsRowRef: RefObject<HTMLDivElement | null>;
+    editorsRowStyle?: CSSProperties;
 }
 
-export const EditorSection: React.FC<EditorSectionProps> = ({
+export const EditorSection = ({
     layout,
     state,
     handlers,
-    editorOptions,
     editorsRowRef,
     editorsRowStyle
-}) => {
+}: EditorSectionProps) => {
     const editorsRowClassName = layout.isResizing ? `${styles.editorsRow} ${styles.isResizing}` : styles.editorsRow;
 
     return (
@@ -61,14 +59,13 @@ export const EditorSection: React.FC<EditorSectionProps> = ({
                 const nextConfig = layout.visibleEditorConfigs[index + 1];
 
                 return (
-                    <React.Fragment key={config.key}>
+                    <Fragment key={config.key}>
                         <EditorPanel
                             config={config}
                             width={layout.sectionWidths[config.key as EditorKey]}
                             height={layout.editorHeight}
                             theme={state.editorTheme}
                             showLineNumbers={layout.showLineNumbers}
-                            options={editorOptions}
                         />
                         {nextConfig ? (
                             <Resizer
@@ -84,7 +81,7 @@ export const EditorSection: React.FC<EditorSectionProps> = ({
                                 }}
                             />
                         ) : null}
-                    </React.Fragment>
+                    </Fragment>
                 );
             })}
         </div>

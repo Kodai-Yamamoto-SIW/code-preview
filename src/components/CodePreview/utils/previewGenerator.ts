@@ -1,6 +1,7 @@
 import { CONSOLE_INTERCEPT_SCRIPT, HEIGHT_OBSERVER_SCRIPT } from './consoleScript';
 import { processCssCode } from './cssProcessor';
 import { processHtmlCode, escapeScriptEndTag } from './htmlProcessor';
+import type { ImageMap } from '../types';
 
 export interface PreviewGeneratorOptions {
     htmlCode: string;
@@ -10,8 +11,7 @@ export interface PreviewGeneratorOptions {
     showConsole: boolean;
     showHTMLEditor: boolean;
     showJSEditor: boolean;
-    imageBasePath?: string;
-    resolvedImages?: { [path: string]: string };
+    resolvedImages?: ImageMap;
     cssPath?: string;
     jsPath?: string;
     resolvedHtmlPath?: string;
@@ -30,10 +30,10 @@ export const generatePreviewDocument = (options: PreviewGeneratorOptions): strin
         showConsole,
         showHTMLEditor,
         showJSEditor,
-        imageBasePath,
         resolvedImages,
         cssPath,
         jsPath,
+        resolvedHtmlPath,
         resolvedCssPath,
         resolvedJsPath
     } = options;
@@ -42,7 +42,15 @@ export const generatePreviewDocument = (options: PreviewGeneratorOptions): strin
     const targetCssPath = resolvedCssPath || cssPath;
     const targetJsPath = resolvedJsPath || jsPath;
 
-    const { processed: processedHtmlRaw, jsInjected } = processHtmlCode(htmlCode, imageBasePath, targetCssPath, cssCode, targetJsPath, jsCode, resolvedImages);
+    const { processed: processedHtmlRaw, jsInjected } = processHtmlCode(
+        htmlCode,
+        targetCssPath,
+        cssCode,
+        targetJsPath,
+        jsCode,
+        resolvedImages,
+        resolvedHtmlPath
+    );
     const processedHtml = escapeScriptEndTag(processedHtmlRaw);
     const processedCss = processCssCode(cssCode, resolvedImages, targetCssPath);
     const styleTag = processedCss ? `<style>\n${processedCss}\n</style>` : '';

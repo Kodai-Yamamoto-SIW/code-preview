@@ -1,29 +1,46 @@
+import { resolvePath } from './pathUtils';
+import type { ImageMap } from '../types';
+
+const isAbsoluteUrl = (path: string) => (
+    path.startsWith('/') ||
+    path.startsWith('http://') ||
+    path.startsWith('https://') ||
+    path.startsWith('data:') ||
+    path.startsWith('blob:') ||
+    path.startsWith('mailto:') ||
+    path.startsWith('tel:') ||
+    path.startsWith('javascript:') ||
+    path.startsWith('#') ||
+    path.startsWith('//')
+);
+
+const normalizeRelativePath = (path: string) => {
+    let normalized = path.replace(/^\.\//, '');
+    while (normalized.startsWith('../')) {
+        normalized = normalized.slice(3);
+    }
+    return normalized;
+};
+
 /**
- * URLを解決するヘルパー関数
- * @param path 元のパス
- * @param base ベースパス
- * @param resolvedImages 解決済みの画像パスのマッピング
- * @returns 解決されたパス
+ * Resolve a URL or path using an optional base URL and virtual image map.
  */
-export const resolveUrl = (path: string, base: string, resolvedImages?: { [path: string]: string }): string => {
-    if (path.startsWith('/') || path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+export const resolveUrl = (
+    path: string,
+    resolvedImages?: ImageMap,
+    baseFilePath?: string
+): string => {
+    if (isAbsoluteUrl(path)) {
         return path;
     }
 
-    // resolvedImagesがある場合、そちらを優先
     if (resolvedImages) {
-        // 相対パス正規化（../img/〜, ./img/〜, img/〜 など）
-        let norm = path.replace(/^\.\//, '');
-        if (norm.startsWith('..')) {
-            norm = norm.replace(/^\.\.\//, '');
+        const normalized = baseFilePath
+            ? resolvePath(baseFilePath, path)
+            : normalizeRelativePath(path);
+        if (resolvedImages[normalized]) {
+            return resolvedImages[normalized];
         }
-        if (resolvedImages[norm]) {
-            return resolvedImages[norm];
-        }
-    }
-
-    if (base) {
-        return `${base}${path}`;
     }
 
     return path;

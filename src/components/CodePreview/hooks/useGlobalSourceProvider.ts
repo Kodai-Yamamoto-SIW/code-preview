@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { ISourceCodeStore } from '../store';
-import { SourceCodeState } from '../types';
+import { SourceCodeState, ImageMap } from '../types';
 
 interface UseGlobalSourceProviderProps {
     sourceId?: string;
@@ -8,7 +8,7 @@ interface UseGlobalSourceProviderProps {
     initialHTML?: string;
     initialCSS?: string;
     initialJS?: string;
-    images?: { [path: string]: string };
+    images?: ImageMap;
     htmlPath?: string;
     cssPath?: string;
     jsPath?: string;

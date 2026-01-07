@@ -42,10 +42,9 @@ export class SourceCodeStore implements ISourceCodeStore {
 
 export const globalSourceCodeStore = new SourceCodeStore();
 
-// テスト用にグローバルストアをwindowに公開
+// Expose the store on window for tests and debugging.
 if (typeof window !== 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).__CodePreviewStore__ = globalSourceCodeStore;
+    window.__CodePreviewStore__ = globalSourceCodeStore;
 }
 
 export const getStoredSource = (sourceId: string) => globalSourceCodeStore.get(sourceId);

@@ -1,6 +1,9 @@
-declare module '*.module.css' {
-    const classes: { [key: string]: string };
-    export default classes;
+import type { ISourceCodeStore } from './components/CodePreview/store';
+
+declare global {
+    interface Window {
+        __CodePreviewStore__?: ISourceCodeStore;
+    }
 }
 
-declare module '*.css';
+export {};

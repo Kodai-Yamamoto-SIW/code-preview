@@ -1,4 +1,4 @@
-import { SourceCodeState } from '../types';
+import { SourceCodeState, ImageMap } from '../types';
 
 interface ResolveSourceProps {
     sourceId?: string;
@@ -6,7 +6,7 @@ interface ResolveSourceProps {
     initialHTML?: string;
     initialCSS?: string;
     initialJS?: string;
-    images?: { [path: string]: string };
+    images?: ImageMap;
     htmlPath?: string;
     cssPath?: string;
     jsPath?: string;

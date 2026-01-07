@@ -1,4 +1,4 @@
-import React from 'react';
+import type { KeyboardEvent, MouseEvent } from 'react';
 import styles from '../styles.module.css';
 import { EditorKey } from '../types';
 
@@ -7,12 +7,12 @@ interface ResizerProps {
     rightKey: EditorKey;
     leftLabel: string;
     rightLabel: string;
-    onMouseDown: (event: React.MouseEvent, left: EditorKey, right: EditorKey) => void;
-    onKeyDown: (event: React.KeyboardEvent, left: EditorKey, right: EditorKey) => void;
-    onDoubleClick: (event: React.MouseEvent) => void;
+    onMouseDown: (event: MouseEvent, left: EditorKey, right: EditorKey) => void;
+    onKeyDown: (event: KeyboardEvent<HTMLDivElement>, left: EditorKey, right: EditorKey) => void;
+    onDoubleClick: (event: MouseEvent) => void;
 }
 
-export const Resizer: React.FC<ResizerProps> = ({
+export const Resizer = ({
     leftKey,
     rightKey,
     leftLabel,
@@ -20,7 +20,7 @@ export const Resizer: React.FC<ResizerProps> = ({
     onMouseDown,
     onKeyDown,
     onDoubleClick
-}) => {
+}: ResizerProps) => {
     return (
         <div
             className={styles.resizer}

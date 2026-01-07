@@ -22,7 +22,6 @@ npm i @metyatech/code-preview
 
 ```tsx
 import { CodePreview } from '@metyatech/code-preview';
-import '@metyatech/code-preview/styles.css';
 
 export default function Example() {
   return (
@@ -39,6 +38,8 @@ export default function Example() {
 }
 ```
 
+Styles are injected automatically; no stylesheet import is required.
+
 ## Props
 
 | Prop | Type | Default | Notes |
@@ -47,28 +48,26 @@ export default function Example() {
 | `initialCSS` | `string` | `undefined` | CSS editor is shown by default when provided. |
 | `initialJS` | `string` | `undefined` | JS editor is shown by default when provided. |
 | `title` | `string` | `undefined` | Header title shown above the editor layout. |
-| `minHeight` | `string` | `"200px"` | Minimum height for editors and preview. |
+| `minHeight` | `number \| string` | `"200px"` | Minimum height for editors and preview. Numbers are treated as px. |
 | `theme` | `"light" \| "dark"` | `"light"` | Monaco theme mapping (`"dark"` uses `vs-dark`). |
 | `htmlVisible` | `boolean` | auto | Force HTML editor visibility. |
 | `cssVisible` | `boolean` | auto | Force CSS editor visibility. |
 | `jsVisible` | `boolean` | auto | Force JS editor visibility. |
-| `previewVisible` | `boolean` | auto | Force preview visibility (default follows HTML editor). |
+| `previewVisible` | `boolean` | auto | Force preview visibility (default shows when HTML exists or HTML editor is forced on). |
 | `consoleVisible` | `boolean` | auto | Force console visibility (default shows when logs exist). |
-| `fileStructureVisible` | `boolean` | auto | Initial file structure visibility (default: `true` when `images` is set, otherwise `false`). |
+| `fileStructureVisible` | `boolean` | auto | Initial file structure visibility (default: `true` when file paths or `images` are provided). |
 | `sourceId` | `string` | `undefined` | Share sources across instances on the same page. |
 | `htmlPath` | `string` | `"index.html"` | Virtual HTML file path for the file structure panel. |
 | `cssPath` | `string` | `undefined` | Virtual CSS path for file structure and `url(...)` resolution. |
 | `jsPath` | `string` | `undefined` | Virtual JS path for file structure and script injection. |
 | `images` | `Record<string, string>` | `undefined` | Map of virtual image paths to real URLs. |
-| `imageBasePath` | `string` | `undefined` | Base path used for HTML `src`/`href`/`srcset` when not covered by `images`. |
-| `editorOptions` | `editor.IEditorConstructionOptions` | `undefined` | Monaco editor options merged with defaults. |
 
 ## Behavior notes
 
 ### Visibility rules
 
 - Editors are shown automatically only when the matching `initial*` prop is provided. Use `htmlVisible`, `cssVisible`, or `jsVisible` to force visibility.
-- Preview visibility follows the HTML editor by default. Use `previewVisible={false}` to hide it.
+- Preview is shown when HTML exists or the HTML editor is forced on. Use `previewVisible={false}` to hide it.
 - Console is shown only when logs exist, unless `consoleVisible` forces it on or off.
 
 ### Virtual file paths and asset resolution
@@ -76,8 +75,7 @@ export default function Example() {
 - `htmlPath`, `cssPath`, and `jsPath` are displayed in the file structure panel.
 - If `cssPath` is provided and your HTML includes a matching `<link rel="stylesheet" href="...">`, the CSS is inlined for the preview.
 - If `jsPath` is provided and your HTML includes a matching `<script src="..."></script>`, the JS is inlined. Otherwise, JS is appended at the end of `<body>`.
-- `images` provides a virtual file map. HTML `src`/`href`/`srcset` and CSS `url(...)` are resolved against that map. CSS resolution uses `cssPath` as the base when provided.
-- `imageBasePath` rewrites HTML `src`/`href`/`srcset` that are not in the `images` map.
+- `images` provides a virtual file map. HTML `src`/`srcset` and CSS `url(...)` are resolved against that map. HTML resolution uses `htmlPath`, CSS resolution uses `cssPath`.
 
 Example using virtual paths and assets:
 

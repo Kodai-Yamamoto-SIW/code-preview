@@ -1,20 +1,21 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import styles from '../styles.module.css';
 import { buildFileStructure } from '../utils/fileStructureUtils';
+import type { ImageMap } from '../types';
 
 interface FileStructurePanelProps {
     resolvedHtmlPath?: string;
     resolvedCssPath?: string;
     resolvedJsPath?: string;
-    resolvedImages?: { [path: string]: string };
+    resolvedImages?: ImageMap;
 }
 
-export const FileStructurePanel: React.FC<FileStructurePanelProps> = ({
+export const FileStructurePanel = ({
     resolvedHtmlPath,
     resolvedCssPath,
     resolvedJsPath,
     resolvedImages
-}) => {
+}: FileStructurePanelProps) => {
     const { folders, rootFiles } = useMemo(() => 
         buildFileStructure(resolvedHtmlPath, resolvedCssPath, resolvedJsPath, resolvedImages),
         [resolvedHtmlPath, resolvedCssPath, resolvedJsPath, resolvedImages]

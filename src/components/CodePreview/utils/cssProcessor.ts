@@ -1,6 +1,7 @@
 import { resolvePath } from './pathUtils';
+import type { ImageMap } from '../types';
 
-export const processCssCode = (code: string, resolvedImages?: { [path: string]: string }, cssPath?: string): string => {
+export const processCssCode = (code: string, resolvedImages?: ImageMap, cssPath?: string): string => {
     if (!resolvedImages) return code;
     return code.replace(/url\((['"]?)([^)'"]+)\1\)/g, (match, quote, path) => {
         let resolvedPath = path;

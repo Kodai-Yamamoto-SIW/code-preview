@@ -1,8 +1,10 @@
+import type { ImageMap } from '../types';
+
 export const buildFileStructure = (
     resolvedHtmlPath?: string,
     resolvedCssPath?: string,
     resolvedJsPath?: string,
-    resolvedImages?: { [path: string]: string }
+    resolvedImages?: ImageMap
 ): { folders: Map<string, string[]>; rootFiles: string[] } => {
     const folders = new Map<string, string[]>();
     const rootFiles: string[] = [];
@@ -22,10 +24,11 @@ export const buildFileStructure = (
     files.forEach(({ path }) => {
         if (!path) return;
 
-        const parts = path.split('/');
+        const normalizedPath = path.replace(/\\/g, '/');
+        const parts = normalizedPath.split('/');
         if (parts.length === 1) {
             // ルートファイル
-            if (!rootFiles.includes(path)) rootFiles.push(path);
+            if (!rootFiles.includes(normalizedPath)) rootFiles.push(normalizedPath);
         } else {
             // フォルダ内のファイル
             const folderPath = parts.slice(0, -1).join('/');

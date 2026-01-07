@@ -1,6 +1,8 @@
 import type { editor } from 'monaco-editor';
 
 export type EditorKey = 'html' | 'css' | 'js';
+export type ImageMap = Record<string, string>;
+export type MinHeightValue = number | string;
 
 export interface EditorDefinition {
     key: EditorKey;
@@ -14,20 +16,18 @@ export interface EditorDefinition {
 
 export interface CodePreviewProps {
     /**
-     * ファイル構造（エクスプローラ）の初期表示状態
-     * trueで初期表示、falseで非表示
-     * 省略時は、imagesが指定されている場合はtrue、それ以外はfalseになります
+     * Initial visibility of the file structure panel.
+     * true shows the panel, false hides it.
+     * When omitted, it is shown only if file paths or images are provided.
      */
     fileStructureVisible?: boolean;
     initialHTML?: string;
     initialCSS?: string;
     initialJS?: string;
     title?: string;
-    minHeight?: string;
-    imageBasePath?: string;
+    minHeight?: MinHeightValue;
     /**
-     * エディタのテーマ。Docusaurusがない環境でも動くよう、明示的に指定できます。
-     * 省略時は 'light'
+     * Monaco editor theme. Defaults to 'light'.
      */
     theme?: 'light' | 'dark';
     htmlVisible?: boolean;
@@ -36,36 +36,30 @@ export interface CodePreviewProps {
     previewVisible?: boolean;
     consoleVisible?: boolean;
     /**
-     * 同じコードを持つ複数の CodePreview を簡単に設置するためのID。
-     * 同じ sourceId を持つ CodePreview が複数ある場合、最初のインスタンスの
-     * initialHTML/CSS/JS が2つ目以降でも自動的に使われます。
-     * ※この共有は同一ページ内でのみ有効です。
+     * Share code between multiple CodePreview instances on the same page.
+     * The first instance that provides initial code becomes the source provider.
      */
     sourceId?: string;
     /**
-     * HTMLファイルのパス（例: "index.html"）
-     * デフォルト: "index.html"
+     * Virtual HTML file path (e.g. "index.html").
+     * Defaults to "index.html".
      */
     htmlPath?: string;
     /**
-     * CSSファイルのパス（例: "css/style.css"）
-     * 指定された場合、HTML内で相対パスで参照可能になります
+     * Virtual CSS file path (e.g. "css/style.css").
+     * When provided, matching <link rel="stylesheet" href="..."> is inlined.
      */
     cssPath?: string;
     /**
-     * JavaScriptファイルのパス（例: "js/script.js"）
-     * 指定された場合、HTML内で相対パスで参照可能になります
+     * Virtual JS file path (e.g. "js/script.js").
+     * When provided, matching <script src="..."> is inlined.
      */
     jsPath?: string;
     /**
-     * 画像ファイルのパスとURLのマップ（Docusaurusのstatic/img/〜など）
-     * 例: { "img/sample.png": "/img/sample.png" }
+     * Image path-to-URL map (e.g. from Docusaurus static assets).
+     * Example: { "img/sample.png": "/img/sample.png" }
      */
-    images?: { [path: string]: string };
-    /**
-     * Monaco Editorのオプション
-     */
-    editorOptions?: editor.IEditorConstructionOptions;
+    images?: ImageMap;
 }
 
 export interface EditorConfig {
@@ -82,7 +76,7 @@ export interface SourceCodeState {
     html: string;
     css: string;
     js: string;
-    images?: { [path: string]: string };
+    images?: ImageMap;
     htmlPath?: string;
     cssPath?: string;
     jsPath?: string;

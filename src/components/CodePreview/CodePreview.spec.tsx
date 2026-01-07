@@ -160,6 +160,34 @@ test.describe('CodePreview コンポーネントのテスト', () => {
         await expect(component.getByText('プレビュー')).toBeVisible();
     });
 
+    test('HTMLがない場合はJSのみではプレビューが表示されないこと', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialJS="console.log('test');"
+            />
+        );
+        await expect(component.getByText('プレビュー')).not.toBeVisible();
+    });
+
+    test('HTMLがない場合はCSSのみではプレビューが表示されないこと', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialCSS="div { color: red; }"
+            />
+        );
+        await expect(component.getByText('プレビュー')).not.toBeVisible();
+    });
+
+    test('HTMLエディタを非表示にしてもHTMLがある場合はプレビューが表示されること', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                htmlVisible={false}
+                initialHTML="<div></div>"
+            />
+        );
+        await expect(component.getByText('プレビュー')).toBeVisible();
+    });
+
     test('プレビューが非表示になること(previewVisible=false)', async ({ mount }) => {
         const component = await mount(
             <CodePreview
@@ -323,6 +351,17 @@ test.describe('CodePreview コンポーネントのテスト', () => {
         );
 
         // コンポーネントが正常に描画されることを確認
+        await expect(component).toBeVisible();
+    });
+
+    test('minHeightが数値でも適用されること', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML="<div>test</div>"
+                minHeight={320}
+            />
+        );
+
         await expect(component).toBeVisible();
     });
 
@@ -996,6 +1035,30 @@ setTimeout(function() {
         await expect.poll(async () => {
             return await iframe.evaluate((el) => (el as HTMLIFrameElement).offsetHeight);
         }, { timeout: 5000 }).toBeGreaterThan(initialHeight);
+    });
+
+    test('cssPathが指定されている場合、fileStructureVisibleが未指定でも表示されること', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML="<div>Test</div>"
+                initialCSS="div { color: red; }"
+                cssPath="css/style.css"
+            />
+        );
+        const toggleButton = component.getByRole('button', { name: 'ファイル構造を隠す' });
+        await expect(toggleButton).toBeVisible();
+    });
+
+    test('jsPathが指定されている場合、fileStructureVisibleが未指定でも表示されること', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML="<div>Test</div>"
+                initialJS="console.log('test');"
+                jsPath="js/app.js"
+            />
+        );
+        const toggleButton = component.getByRole('button', { name: 'ファイル構造を隠す' });
+        await expect(toggleButton).toBeVisible();
     });
 
     test('imagesが指定されている場合、fileStructureVisibleが未指定ならデフォルトで表示されること', async ({ mount }) => {

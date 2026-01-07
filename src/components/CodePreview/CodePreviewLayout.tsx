@@ -1,4 +1,4 @@
-import React from 'react';
+import type { CSSProperties } from 'react';
 import styles from './styles.module.css';
 import { FileStructurePanel } from './components/FileStructurePanel';
 import { ConsolePanel } from './components/ConsolePanel';
@@ -6,40 +6,33 @@ import { EditorSection } from './components/EditorSection';
 import { PreviewSection } from './components/PreviewSection';
 import { useCodePreview } from './hooks/useCodePreview';
 
-import type { editor } from 'monaco-editor';
 
 type UseCodePreviewResult = ReturnType<typeof useCodePreview>;
 
 interface CodePreviewLayoutProps extends UseCodePreviewResult {
     title?: string;
-    minHeight: string;
-    imageBasePath?: string;
     cssPath?: string;
     jsPath?: string;
-    editorOptions?: editor.IEditorConstructionOptions;
 }
 
-export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
+export const CodePreviewLayout = ({
     elementRefs,
     state,
     visibility,
     layout,
     handlers,
     title,
-    minHeight,
-    imageBasePath,
     cssPath,
     jsPath,
-    editorOptions,
-}) => {
+}: CodePreviewLayoutProps) => {
     const {
         iframeRef,
         containerRef,
         editorsRowRef,
     } = elementRefs;
 
-    const splitLayoutStyle: React.CSSProperties | undefined = visibility.showPreview ? undefined : { minHeight: 'auto' };
-    const editorsRowStyle: React.CSSProperties | undefined = visibility.showPreview || visibility.showConsole ? undefined : { borderBottom: 'none' };
+    const splitLayoutStyle: CSSProperties | undefined = visibility.showPreview ? undefined : { minHeight: 'auto' };
+    const editorsRowStyle: CSSProperties | undefined = visibility.showPreview || visibility.showConsole ? undefined : { borderBottom: 'none' };
 
     return (
         <div className={styles.codePreviewContainer}>
@@ -65,7 +58,6 @@ export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
                     layout={layout}
                     state={state}
                     handlers={handlers}
-                    editorOptions={editorOptions}
                     editorsRowRef={editorsRowRef}
                     editorsRowStyle={editorsRowStyle}
                 />
@@ -75,8 +67,7 @@ export const CodePreviewLayout: React.FC<CodePreviewLayoutProps> = ({
                     visibility={visibility}
                     state={state}
                     layout={layout}
-                    minHeight={minHeight}
-                    imageBasePath={imageBasePath}
+                    minHeightCss={layout.minHeightCss}
                     cssPath={cssPath}
                     jsPath={jsPath}
                     iframeRef={iframeRef}

@@ -1,11 +1,10 @@
-import React from 'react';
 import styles from '../styles.module.css';
 
 interface ConsolePanelProps {
     logs: string[];
 }
 
-export const ConsolePanel: React.FC<ConsolePanelProps> = ({ logs }) => {
+export const ConsolePanel = ({ logs }: ConsolePanelProps) => {
     return (
         <div className={styles.consoleSection}>
             <div className={styles.sectionHeader}>コンソール</div>

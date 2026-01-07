@@ -1,4 +1,3 @@
-import React from 'react';
 import { ResetButton } from './ResetButton';
 import { ToolbarButton } from './ToolbarButton';
 
@@ -13,7 +12,7 @@ interface ToolbarProps {
     onToggleFileStructure: () => void;
 }
 
-export const Toolbar: React.FC<ToolbarProps> = ({
+export const Toolbar = ({
     resetProgress,
     showLineNumbers,
     showFileStructure,
@@ -22,7 +21,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     onResetMouseLeave,
     onToggleLineNumbers,
     onToggleFileStructure
-}) => {
+}: ToolbarProps) => {
     return (
         <>
             <ResetButton
