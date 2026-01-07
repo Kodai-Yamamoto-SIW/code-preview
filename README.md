@@ -1,119 +1,126 @@
 # @metyatech/code-preview
 
-An HTML/CSS/JS live preview component for Docusaurus and React sites (beginner-friendly).
+A React + TypeScript component for editing HTML/CSS/JS with a live iframe preview and console output. It is used in Docusaurus course content, but works in any React app.
 
 ## Features
 
-- Edit HTML/CSS/JavaScript side-by-side with a preview pane
-- Light/Dark themes (via props)
-- Powered by Monaco Editor
+- Monaco editor panels for HTML, CSS, and JavaScript (shown only when enabled)
+- Live preview rendered in a sandboxed iframe (`srcDoc`)
+- Console panel that captures `console.log`, `console.error`, and runtime errors
+- File structure panel for virtual file paths and image assets
+- Resizable editor columns (drag, keyboard arrows, double-click or Enter/Space to reset)
+- Toolbar controls: long-press reset, line numbers toggle, file structure toggle
+- Auto sizing for editors and preview (grows with content, respects `minHeight`)
 
-## Setup
-
-### Installation
+## Installation
 
 ```bash
-pnpm add @metyatech/code-preview
-# or
 npm i @metyatech/code-preview
 ```
 
-## Usage
+## Quick start
 
 ```tsx
 import { CodePreview } from '@metyatech/code-preview';
 import '@metyatech/code-preview/styles.css';
 
-export default function Sample() {
+export default function Example() {
   return (
     <CodePreview
-      initialHTML="<p>Hello</p>"
-      initialCSS="p { color: red; }"
-      initialJS="document.querySelector('p')?.addEventListener('click', () => alert('clicked'))"
-      title="Sample"
-      theme="light"
-      fileStructureVisible={true}
+      title="Basic Example"
+      initialHTML={`<button id="btn">Click me</button>`}
+      initialCSS={`#btn { padding: 8px 12px; }`}
+      initialJS={`document.getElementById('btn')?.addEventListener('click', () => {
+  console.log('clicked');
+});`}
+      minHeight="240px"
     />
   );
 }
 ```
 
-- `initialHTML`: only the body contents (no `<!DOCTYPE>` / `<html>` required)
-- `initialCSS`: when provided, the CSS editor is shown
-- `initialJS`: when provided, the JS editor is shown and injected as a `<script>` in the preview
-- `imageBasePath`: base path for resolving relative image paths
-- `theme`: `'light' | 'dark'`
-- `htmlVisible` / `cssVisible` / `jsVisible`: force each editor panel visibility (default: auto)
-- `previewVisible`: toggle the preview pane (default: follows HTML editor state)
-- `consoleVisible`: toggle the console pane (when `true`, it shows even if there are no logs)
-- `fileStructureVisible`: initial visibility for the file explorer pane
-- `sourceId`: share code/file structure across multiple `CodePreview` instances
-- `htmlPath` / `cssPath` / `jsPath`: sets virtual filenames/paths and enables relative imports
-- `images`: map from virtual path to URL (e.g. `images={{ "img/sample.png": "/img/sample.png" }}`)
+## Props
 
-### File Explorer / Virtual File System
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `initialHTML` | `string` | `undefined` | HTML inserted into `<body>`. When provided, the HTML editor is shown by default. |
+| `initialCSS` | `string` | `undefined` | CSS editor is shown by default when provided. |
+| `initialJS` | `string` | `undefined` | JS editor is shown by default when provided. |
+| `title` | `string` | `undefined` | Header title shown above the editor layout. |
+| `minHeight` | `string` | `"200px"` | Minimum height for editors and preview. |
+| `theme` | `"light" \| "dark"` | `"light"` | Monaco theme mapping (`"dark"` uses `vs-dark`). |
+| `htmlVisible` | `boolean` | auto | Force HTML editor visibility. |
+| `cssVisible` | `boolean` | auto | Force CSS editor visibility. |
+| `jsVisible` | `boolean` | auto | Force JS editor visibility. |
+| `previewVisible` | `boolean` | auto | Force preview visibility (default follows HTML editor). |
+| `consoleVisible` | `boolean` | auto | Force console visibility (default shows when logs exist). |
+| `fileStructureVisible` | `boolean` | auto | Initial file structure visibility (default: `true` when `images` is set, otherwise `false`). |
+| `sourceId` | `string` | `undefined` | Share sources across instances on the same page. |
+| `htmlPath` | `string` | `"index.html"` | Virtual HTML file path for the file structure panel. |
+| `cssPath` | `string` | `undefined` | Virtual CSS path for file structure and `url(...)` resolution. |
+| `jsPath` | `string` | `undefined` | Virtual JS path for file structure and script injection. |
+| `images` | `Record<string, string>` | `undefined` | Map of virtual image paths to real URLs. |
+| `imageBasePath` | `string` | `undefined` | Base path used for HTML `src`/`href`/`srcset` when not covered by `images`. |
+| `editorOptions` | `editor.IEditorConstructionOptions` | `undefined` | Monaco editor options merged with defaults. |
 
-Providing filenames/paths (`htmlPath`, `cssPath`, `jsPath`, `images`) shows a file explorer UI.
+## Behavior notes
 
-- Example: `<CodePreview cssPath="css/style.css" images={{ "img/fence.png": "/static/img/fence.png" }} ... />`
-- File structure is shared across instances when `sourceId` is provided
-- Images appear in the file tree and are resolvable via relative paths from HTML/CSS/JS
-- CSS `url(...)` is automatically transformed to the `images` mapping
-- `fetch` and `<img src=...>` also work via the virtual files
+### Visibility rules
 
-#### Images Example
+- Editors are shown automatically only when the matching `initial*` prop is provided. Use `htmlVisible`, `cssVisible`, or `jsVisible` to force visibility.
+- Preview visibility follows the HTML editor by default. Use `previewVisible={false}` to hide it.
+- Console is shown only when logs exist, unless `consoleVisible` forces it on or off.
+
+### Virtual file paths and asset resolution
+
+- `htmlPath`, `cssPath`, and `jsPath` are displayed in the file structure panel.
+- If `cssPath` is provided and your HTML includes a matching `<link rel="stylesheet" href="...">`, the CSS is inlined for the preview.
+- If `jsPath` is provided and your HTML includes a matching `<script src="..."></script>`, the JS is inlined. Otherwise, JS is appended at the end of `<body>`.
+- `images` provides a virtual file map. HTML `src`/`href`/`srcset` and CSS `url(...)` are resolved against that map. CSS resolution uses `cssPath` as the base when provided.
+- `imageBasePath` rewrites HTML `src`/`href`/`srcset` that are not in the `images` map.
+
+Example using virtual paths and assets:
 
 ```tsx
 <CodePreview
-  initialHTML={`<img src="img/fence.png">`}
-  initialCSS={`.bg { background: url('../img/fence.png'); }`}
-  images={{ "img/fence.png": "/static/img/fence.png" }}
-  ...
-/>
+  initialHTML={`<link rel="stylesheet" href="css/style.css">
+<img src="img/logo.png" />
+<script src="js/app.js"></script>`}
+  initialCSS={`img { width: 120px; }`}
+  initialJS={`console.log('ready');`}
+  cssPath="css/style.css"
+  jsPath="js/app.js"
+  images={{ 'img/logo.png': '/static/img/logo.png' }}
+/>;
 ```
 
-### Panel Visibility Control
+### Sharing code with `sourceId`
 
-- Use `htmlVisible`, `cssVisible`, `jsVisible`, `previewVisible`, `consoleVisible` to control panel visibility
-- Use `fileStructureVisible` to control the initial file explorer state
+- Instances with the same `sourceId` share HTML/CSS/JS and file paths on the same page (`window.location.pathname`).
+- The first instance that provides `initialHTML`/`initialCSS`/`initialJS` becomes the source provider. Avoid providing initial code in later instances unless you want to override the shared values.
 
-### Sharing Code with `sourceId`
+### Editor and preview sizing
 
-When multiple `CodePreview` components share the same `sourceId`, the first instance defines the initial code/file structure, and subsequent instances reuse it by default.
+- Editor height is calculated from content and clamped to a max of 600px.
+- Preview height grows as content expands and is clamped to a max of 800px. It does not automatically shrink.
 
-```tsx
-// 1st: define shared code
-<CodePreview
-  sourceId="sample-code"
-  initialHTML="<p>Shared</p>"
-  initialCSS="p { color: blue; }"
-  title="Example 1"
-/>
+### Reset and resizing controls
 
-// 2nd: reuse by sourceId only
-<CodePreview sourceId="sample-code" title="Example 2" />
+- The reset button requires a long press (500ms) and resets code, console logs, and the iframe.
+- Resizers can be dragged with the mouse, adjusted via arrow keys, and reset to auto sizing by double-clicking or pressing Enter/Space.
+- Line numbers are hidden by default and can be toggled in the toolbar.
 
-// 3rd: override part of the code
-<CodePreview
-  sourceId="sample-code"
-  initialCSS="p { color: red; }"
-  title="Example 3 (CSS override)"
-/>
-```
+## Development
 
-Note: `initialJS` runs as a `<script>` in the preview (no error handling/type checking, since it's for preview use).
-
-## Development Commands
-
-- `npm run build`: build
-- `npm test`: component tests (Chromium/all browsers)
+- `npm run build`: build with Rollup
 - `npm run lint`: lint
+- `npm run test`: Playwright component tests (Chromium and full)
 
-## Environment Variables/Settings
+## Environment variables
 
 None.
 
-## Release/Deploy
+## Release
 
 ```bash
 npm publish
