@@ -925,6 +925,37 @@ test.describe('動的な高さ変更のテスト', () => {
         }, { timeout: 5000 }).toBeGreaterThan(initialHeight);
     });
 
+    test('iframeIdが一致しなくても同一iframeからの高さ通知で更新されること', async ({ mount }) => {
+        const component = await mount(
+            <CodePreview
+                initialHTML="<div>Short content</div>"
+                minHeight="100px"
+            />
+        );
+
+        const iframe = component.locator('iframe');
+        await expect(iframe).toBeVisible();
+
+        const initialHeight = await iframe.evaluate((el) => (el as HTMLIFrameElement).offsetHeight);
+        expect(initialHeight).toBeLessThan(200);
+
+        const iframeHandle = await iframe.elementHandle();
+        if (!iframeHandle) {
+            throw new Error('iframe handle is not available');
+        }
+        const frame = await iframeHandle.contentFrame();
+        if (!frame) {
+            throw new Error('iframe content frame is not available');
+        }
+        await frame.evaluate(() => {
+            window.parent.postMessage({ type: 'codePreviewHeightChange', height: 420, iframeId: 'mismatch-id' }, '*');
+        });
+
+        await expect.poll(async () => {
+            return await iframe.evaluate((el) => (el as HTMLIFrameElement).offsetHeight);
+        }, { timeout: 5000 }).toBeGreaterThanOrEqual(400);
+    });
+
     test('モーダルウィンドウのような固定配置要素が表示された場合、高さが広がること', async ({ mount }) => {
         const component = await mount(
             <CodePreview

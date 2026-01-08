@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useId, useMemo } from 'react';
 import type { editor } from 'monaco-editor';
 import { CodePreviewProps } from '../types';
 import { useSourceCodeStore } from './useSourceCodeStore';
@@ -84,8 +84,8 @@ export const useCodePreview = (props: CodePreviewProps) => {
         return hasFileStructureInputs;
     });
     const [iframeKey, setIframeKey] = useState(0);
-    // iframeIdを一度だけ生成して保持する
-    const [iframeId] = useState(() => `iframe-${Math.random().toString(36).substr(2, 9)}`);
+    const rawIframeId = useId();
+    const iframeId = useMemo(() => `iframe-${rawIframeId.replace(/:/g, '')}`, [rawIframeId]);
 
     const { consoleLogs, setConsoleLogs } = useConsoleLogs(iframeRef, [jsCode, htmlCode]);
 
@@ -121,7 +121,6 @@ export const useCodePreview = (props: CodePreviewProps) => {
         minHeightPx: minHeightConfig.px,
         showPreview,
         iframeRef,
-        iframeId,
         editors
     });
 

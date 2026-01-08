@@ -5,7 +5,6 @@ interface UsePreviewHeightProps {
     minHeightPx: number;
     showPreview: boolean;
     iframeRef: React.RefObject<HTMLIFrameElement | null>;
-    iframeId: string;
     editors: EditorDefinition[];
 }
 
@@ -15,7 +14,6 @@ export const usePreviewHeight = ({
     minHeightPx,
     showPreview,
     iframeRef,
-    iframeId,
     editors
 }: UsePreviewHeightProps) => {
     const [previewHeight, setPreviewHeight] = useState(`${minHeightPx}px`);
@@ -60,18 +58,34 @@ export const usePreviewHeight = ({
         setPreviewHeight(limitedPreviewHeight + 'px');
     }, [iframeRef, minHeightPx]);
 
+    const requestPreviewHeight = useCallback(() => {
+        const iframe = iframeRef.current;
+        if (!iframe?.contentWindow) {
+            return;
+        }
+
+        try {
+            iframe.contentWindow.postMessage({ type: 'codePreviewHeightRequest' }, '*');
+        } catch {
+            // noop
+        }
+    }, [iframeRef]);
+
     const updatePreviewHeight = useCallback(() => {
         if (!showPreview) return;
         setTimeout(() => {
             calculatePreviewHeight();
+            requestPreviewHeight();
         }, 100);
-    }, [showPreview, calculatePreviewHeight]);
+    }, [showPreview, calculatePreviewHeight, requestPreviewHeight]);
 
     // Handle height change messages from iframe
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            if (event.data?.type === 'codePreviewHeightChange' && 
-                event.data?.iframeId === iframeId && 
+            if (event.source !== iframeRef.current?.contentWindow) {
+                return;
+            }
+            if (event.data?.type === 'codePreviewHeightChange' &&
                 typeof event.data.height === 'number') {
                 const newHeight = event.data.height;
                 // Only grow, never shrink
@@ -85,7 +99,7 @@ export const usePreviewHeight = ({
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [iframeId]);
+    }, [iframeRef]);
 
     // Initial load and resize
     useEffect(() => {

@@ -229,10 +229,10 @@ const getDocumentHeight = () => {
     return Math.max(standardHeight, elementHeight);
 };
 
-const reportHeight = () => {
+const reportHeight = (force = false) => {
     const currentHeight = getDocumentHeight();
-    if (currentHeight > lastReportedHeight) {
-        lastReportedHeight = currentHeight;
+    if (force || currentHeight > lastReportedHeight) {
+        lastReportedHeight = Math.max(lastReportedHeight, currentHeight);
         try {
             window.parent.postMessage({ type: 'codePreviewHeightChange', height: currentHeight, iframeId: iframeId }, '*');
         } catch (error) {
@@ -284,5 +284,14 @@ window.addEventListener('load', reportHeight);
 
 // Periodically check for changes that might be missed (e.g., CSS animations, transitions)
 setInterval(reportHeight, 500);
+
+window.addEventListener('message', (event) => {
+    if (event.source !== window.parent) return;
+    const data = event.data;
+    if (!data || typeof data !== 'object') return;
+    if (data.type === 'codePreviewHeightRequest') {
+        reportHeight(true);
+    }
+});
 })();
 `;
