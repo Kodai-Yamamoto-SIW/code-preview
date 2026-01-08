@@ -695,6 +695,48 @@ test.describe('CodePreview コンポーネントのテスト', () => {
         await expect(frame2.locator('div')).toHaveText('Shared Content', { timeout: 5000 });
     });
 
+    test('初期コードの共通インデントが除去されること', async ({ mount, page }) => {
+        const rawHtml = '\n    <div id="indent-target">\n        <span>Indent</span>\n    </div>\n';
+        const rawJs = '\n    document.getElementById(\'indent-target\').textContent = \'ok\';\n';
+
+        await mount(
+            <CodePreview
+                sourceId="indent-test"
+                initialHTML={rawHtml}
+                initialJS={rawJs}
+            />
+        );
+
+        await expect.poll(async () => {
+            return await page.evaluate(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const store = (window as any).__CodePreviewStore__;
+                const key = `indent-test:${window.location.pathname}`;
+                return store?.get(key) ?? null;
+            });
+        }).not.toBeNull();
+
+        const stored = await page.evaluate(() => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const store = (window as any).__CodePreviewStore__;
+            const key = `indent-test:${window.location.pathname}`;
+            return store?.get(key) ?? null;
+        });
+
+        if (!stored) {
+            throw new Error('Stored source code was not found.');
+        }
+
+        const htmlLines = stored.html.split(/\r\n|\n|\r/);
+        expect(htmlLines[0]).toBe('<div id="indent-target">');
+        expect(htmlLines[1].startsWith('    ')).toBe(true);
+        expect(htmlLines[1].trim()).toBe('<span>Indent</span>');
+        expect(htmlLines[2].trim()).toBe('</div>');
+        expect(htmlLines[0].match(/^\\s*/)?.[0].length ?? 0).toBe(0);
+        expect(htmlLines[2].match(/^\\s*/)?.[0].length ?? 0).toBe(0);
+        expect(stored.js).toBe("document.getElementById('indent-target').textContent = 'ok';");
+    });
+
     // ===== images プロパティのテスト =====
     test('CSS内の画像パスがimagesプロパティに基づいて解決されること', async ({ mount }) => {
         const component = await mount(

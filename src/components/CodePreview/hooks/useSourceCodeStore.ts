@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
-import { ensureTrailingNewline } from '../utils/stringUtils';
+import { ensureTrailingNewline, normalizeInitialCode } from '../utils/stringUtils';
 import { resolveInitialSource } from '../utils/sourceCodeUtils';
 import { useGlobalSourceSync } from './useGlobalSourceSync';
 import { useGlobalSourceProvider } from './useGlobalSourceProvider';
@@ -20,6 +20,9 @@ interface UseSourceCodeStoreProps {
 
 export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
     const { store = globalSourceCodeStore, sourceId } = props;
+    const normalizedInitialHTML = normalizeInitialCode(props.initialHTML);
+    const normalizedInitialCSS = normalizeInitialCode(props.initialCSS);
+    const normalizedInitialJS = normalizeInitialCode(props.initialJS);
 
     const scopedSourceId = useMemo(() => {
         if (!sourceId) return undefined;
@@ -40,7 +43,17 @@ export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
         hasInitialHTML,
         hasInitialCSS,
         hasInitialJS
-    } = resolveInitialSource({ ...props, sourceId: scopedSourceId, storedState });
+    } = resolveInitialSource({
+        sourceId: scopedSourceId,
+        storedState,
+        initialHTML: normalizedInitialHTML,
+        initialCSS: normalizedInitialCSS,
+        initialJS: normalizedInitialJS,
+        images: props.images,
+        htmlPath: props.htmlPath,
+        cssPath: props.cssPath,
+        jsPath: props.jsPath
+    });
 
     const [htmlCode, setHtmlCode] = useState(ensureTrailingNewline(resolvedHTML || ''));
     const [cssCode, setCssCode] = useState(ensureTrailingNewline(resolvedCSS || ''));
@@ -67,9 +80,9 @@ export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
     useGlobalSourceProvider({
         sourceId: scopedSourceId,
         store,
-        initialHTML: props.initialHTML,
-        initialCSS: props.initialCSS,
-        initialJS: props.initialJS,
+        initialHTML: normalizedInitialHTML,
+        initialCSS: normalizedInitialCSS,
+        initialJS: normalizedInitialJS,
         images: props.images,
         htmlPath: props.htmlPath,
         cssPath: props.cssPath,

@@ -70,6 +70,11 @@ Styles are injected automatically; no stylesheet import is required.
 - Preview is shown when HTML exists or the HTML editor is forced on. Use `previewVisible={false}` to hide it.
 - Console is shown only when logs exist, unless `consoleVisible` forces it on or off.
 
+### Initial code normalization
+
+- When `initialHTML`, `initialCSS`, or `initialJS` are multi-line strings, common leading indentation and leading/trailing blank lines are trimmed automatically.
+- Single-line strings are left as-is.
+
 ### Virtual file paths and asset resolution
 
 - `htmlPath`, `cssPath`, and `jsPath` are displayed in the file structure panel.
