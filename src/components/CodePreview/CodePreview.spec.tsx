@@ -737,6 +737,43 @@ test.describe('CodePreview コンポーネントのテスト', () => {
         expect(stored.js).toBe("document.getElementById('indent-target').textContent = 'ok';");
     });
 
+    test('初期コードに共通インデントがない場合は先頭スペースが保持されること', async ({ mount, page }) => {
+        const rawHtml = '\nA\n  B\n';
+
+        await mount(
+            <CodePreview
+                sourceId="indent-preserve-test"
+                initialHTML={rawHtml}
+            />
+        );
+
+        await expect.poll(async () => {
+            return await page.evaluate(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const store = (window as any).__CodePreviewStore__;
+                const key = `indent-preserve-test:${window.location.pathname}`;
+                return store?.get(key) ?? null;
+            });
+        }).not.toBeNull();
+
+        const stored = await page.evaluate(() => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const store = (window as any).__CodePreviewStore__;
+            const key = `indent-preserve-test:${window.location.pathname}`;
+            return store?.get(key) ?? null;
+        });
+
+        if (!stored) {
+            throw new Error('Stored source code was not found.');
+        }
+
+        const htmlLines = stored.html.split(/\r\n|\n|\r/);
+        expect(htmlLines[0]).toBe('A');
+        expect(htmlLines[1]).toBe('  B');
+        expect(htmlLines[0].match(/^\s*/)?.[0].length ?? 0).toBe(0);
+        expect(htmlLines[1].match(/^\s*/)?.[0].length ?? 0).toBe(2);
+    });
+
     // ===== images プロパティのテスト =====
     test('CSS内の画像パスがimagesプロパティに基づいて解決されること', async ({ mount }) => {
         const component = await mount(
