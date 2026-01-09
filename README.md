@@ -131,11 +131,17 @@ console.log('ready');
 
 ## AGENTS.md
 
-This project uses `agent-rules` as a git submodule.
+This project uses `agent-rules` and `agent-rules-tools` as git submodules.
+After cloning, initialize submodules:
+
+```bash
+git submodule update --init --recursive
+```
+
 Update `agent-ruleset.json` as needed and regenerate:
 
 ```bash
-node agent-rules/tools/compose-agents.cjs
+node agent-rules-tools/tools/compose-agents.cjs
 ```
 
 ## Environment variables
