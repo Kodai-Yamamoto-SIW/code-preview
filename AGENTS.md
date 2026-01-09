@@ -46,11 +46,12 @@
 
 - この `AGENTS.md` は単独で完結する前提とする。
 - 親子ディレクトリの `AGENTS.md` に依存しない（継承/優先の概念は使わない）。
-- ルールは各プロジェクト直下の `agent-rules/`（git submodule）で部品化し、同じくプロジェクト直下の `agent-ruleset.json` で選択して合成する。
+- ルールは共通ルール（`agent-rules/rules/`）として管理し、各プロジェクト直下の `agent-rules/`（git submodule）から参照して合成する。
+- プロジェクト固有ルールが必要な場合は、プロジェクト側に `agent-rules-local/` 等で配置し、`agent-ruleset.json` から参照して合成する。
 
 ### 更新方針
 
-- ルール変更は `agent-rules/rules/` と各プロジェクトの `agent-ruleset.json` に対して行い、合成スクリプト（`agent-rules/tools/compose-agents.cjs`）で `AGENTS.md` を再生成する。
+- ルール変更は `agent-rules/rules/`、プロジェクト固有ルール（例: `agent-rules-local/`）、および `agent-ruleset.json` に対して行い、合成スクリプト（`agent-rules/tools/compose-agents.cjs`）で `AGENTS.md` を再生成する。
 - 生成済みの `AGENTS.md` は直接編集しない（編集が必要なら元ルールへ反映する）。
 - ユーザーから「ルールを更新して」と依頼された場合、特段の指示がない限り「適切なルールモジュールとルールセットを更新し、再生成する」ことを意味する。
 - ユーザーが「常にこうして下さい」など恒常運用の指示を明示した場合は、その指示自体をルールとして適切なモジュールに追記する。
