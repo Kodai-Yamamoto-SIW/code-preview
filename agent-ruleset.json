@@ -1,0 +1,8 @@
+{
+  "output": "AGENTS.md",
+  "rules": [
+    "agent-rules/rules/base.md",
+    "agent-rules/rules/plugins.md",
+    "agent-rules-local/code-preview.md"
+  ]
+}

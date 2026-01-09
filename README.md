@@ -129,6 +129,15 @@ console.log('ready');
 - `npm run lint`: lint
 - `npm run test`: Playwright component tests (Chromium and full)
 
+## AGENTS.md
+
+This project uses `agent-rules` as a git submodule.
+Update `agent-ruleset.json` as needed and regenerate:
+
+```bash
+node agent-rules/tools/compose-agents.cjs
+```
+
 ## Environment variables
 
 None.
