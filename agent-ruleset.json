@@ -1,8 +1,15 @@
 {
   "output": "AGENTS.md",
   "rules": [
-    "agent-rules/rules/base.md",
-    "agent-rules/rules/plugins.md",
+    "agent-rules/rules/languages-and-writing.md",
+    "agent-rules/rules/implementation-and-coding-standards.md",
+    "agent-rules/rules/agent-rules-composition.md",
+    "agent-rules/rules/readme-standards.md",
+    "agent-rules/rules/quality-testing-and-errors.md",
+    "agent-rules/rules/command-execution.md",
+    "agent-rules/rules/repository-hygiene-and-file-naming.md",
+    "agent-rules/rules/multi-repo-workflow.md",
+    "agent-rules/rules/shared-node-modules.md",
     "agent-rules-local/code-preview.md"
   ]
 }
