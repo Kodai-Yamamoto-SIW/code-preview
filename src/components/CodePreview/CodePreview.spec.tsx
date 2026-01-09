@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 import CodePreview from './index';
+import { CodePreviewFixture } from './fixtures/CodePreviewFixture';
 
 test.use({ viewport: { width: 1200, height: 800 } });
 
@@ -7,8 +8,8 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('最低限のプロパティで正しく描画されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<h1>こんにちは</h1>"
+            <CodePreviewFixture
+                html="<h1>こんにちは</h1>"
             />
         );
 
@@ -21,11 +22,24 @@ test.describe('CodePreview コンポーネントのテスト', () => {
         await expect(component.getByText('プレビュー')).toBeVisible();
     });
 
+    test('文字列フェンスからHTMLが読み取られること', async ({ mount }) => {
+        const raw = '```html\n<div id="raw-block">Raw</div>\n```';
+        const component = await mount(
+            <CodePreview>{raw}</CodePreview>
+        );
+
+        await expect(component.getByText('HTML')).toBeVisible();
+
+        const iframe = component.locator('iframe');
+        const frame = iframe.contentFrame();
+        await expect(frame.locator('#raw-block')).toBeVisible({ timeout: 10000 });
+    });
+
     test('タイトルが指定された場合、正しく表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 title="テスト用タイトル"
-                initialHTML="<div>Test</div>"
+                html="<div>Test</div>"
             />
         );
 
@@ -34,11 +48,11 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('全エディタが表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 htmlVisible={true}
                 cssVisible={true}
                 jsVisible={true}
-                initialHTML="<div></div>"
+                html="<div></div>"
             />
         );
         await expect(component.getByText('HTML')).toBeVisible();
@@ -48,11 +62,11 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('HTMLエディタのみ表示されること（htmlVisible=true）', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 htmlVisible={true}
                 cssVisible={false}
                 jsVisible={false}
-                initialHTML="<div></div>"
+                html="<div></div>"
             />
         );
         await expect(component.getByText('HTML')).toBeVisible();
@@ -62,11 +76,11 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('CSSエディタのみ表示されること（cssVisible=true）', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 htmlVisible={false}
                 cssVisible={true}
                 jsVisible={false}
-                initialHTML="<div></div>"
+                html="<div></div>"
             />
         );
         await expect(component.getByText('HTML')).not.toBeVisible();
@@ -76,11 +90,11 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('JSエディタのみ表示されること（jsVisible=true）', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 htmlVisible={false}
                 cssVisible={false}
                 jsVisible={true}
-                initialHTML="<div></div>"
+                html="<div></div>"
             />
         );
         await expect(component.getByText('HTML')).not.toBeVisible();
@@ -90,9 +104,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('ファイル構造パネルの表示切り替えができること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 fileStructureVisible={true}
-                initialHTML="<div></div>"
+                html="<div></div>"
             />
         );
 
@@ -105,8 +119,8 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('リセットボタンが正しく表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<h1>Original</h1>"
+            <CodePreviewFixture
+                html="<h1>Original</h1>"
             />
         );
 
@@ -116,8 +130,8 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('プレビュー（iframe）内にコンテンツが描画されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div id='test-target'>Hello World</div>"
+            <CodePreviewFixture
+                html="<div id='test-target'>Hello World</div>"
             />
         );
 
@@ -135,9 +149,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('CSSが適用されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div id='styled-div'>Styled</div>"
-                initialCSS="#styled-div { color: rgb(255, 0, 0); }"
+            <CodePreviewFixture
+                html="<div id='styled-div'>Styled</div>"
+                css="#styled-div { color: rgb(255, 0, 0); }"
             />
         );
 
@@ -152,9 +166,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('プレビューが表示されること(previewVisible=true)', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 previewVisible={true}
-                initialHTML="<div></div>"
+                html="<div></div>"
             />
         );
         await expect(component.getByText('プレビュー')).toBeVisible();
@@ -162,8 +176,8 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('HTMLがない場合はJSのみではプレビューが表示されないこと', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialJS="console.log('test');"
+            <CodePreviewFixture
+                js="console.log('test');"
             />
         );
         await expect(component.getByText('プレビュー')).not.toBeVisible();
@@ -171,8 +185,8 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('HTMLがない場合はCSSのみではプレビューが表示されないこと', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialCSS="div { color: red; }"
+            <CodePreviewFixture
+                css="div { color: red; }"
             />
         );
         await expect(component.getByText('プレビュー')).not.toBeVisible();
@@ -180,9 +194,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('HTMLエディタを非表示にしてもHTMLがある場合はプレビューが表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 htmlVisible={false}
-                initialHTML="<div></div>"
+                html="<div></div>"
             />
         );
         await expect(component.getByText('プレビュー')).toBeVisible();
@@ -190,9 +204,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('プレビューが非表示になること(previewVisible=false)', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 previewVisible={false}
-                initialHTML="<div></div>"
+                html="<div></div>"
             />
         );
         await expect(component.getByText('プレビュー')).not.toBeVisible();
@@ -200,9 +214,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('コンソールが表示されること(consoleVisible=true)', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 consoleVisible={true}
-                initialHTML="<div></div>"
+                html="<div></div>"
             />
         );
         await expect(component.getByText('コンソール')).toBeVisible();
@@ -211,9 +225,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('コンソールが非表示になること(consoleVisible=false)', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 consoleVisible={false}
-                initialHTML="<div></div>"
+                html="<div></div>"
             />
         );
         await expect(component.getByText('コンソール')).not.toBeVisible();
@@ -222,9 +236,10 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     // ===== JavaScriptの実行テスト =====
     test('JavaScriptが実行されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div id='js-target'></div>"
-                initialJS="document.getElementById('js-target').textContent = 'JS実行成功';"
+            <CodePreviewFixture
+                html="<div id='js-target'></div>"
+                js="document.getElementById('js-target').textContent = 'JS実行成功';"
+                jsLanguage="javascript"
             />
         );
 
@@ -239,10 +254,10 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     // ===== console.logの出力テスト =====
     test('console.logがコンソールパネルに表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 consoleVisible={true}
-                initialHTML="<div></div>"
-                initialJS="console.log('テストログ1');"
+                html="<div></div>"
+                js="console.log('テストログ1');"
             />
         );
 
@@ -254,10 +269,10 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('複数のconsole.logが表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 consoleVisible={true}
-                initialHTML="<div></div>"
-                initialJS="console.log('ログ1'); console.log('ログ2'); console.log('ログ3');"
+                html="<div></div>"
+                js="console.log('ログ1'); console.log('ログ2'); console.log('ログ3');"
             />
         );
 
@@ -269,8 +284,8 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     // ===== リセット機能のテスト =====
     test('リセットボタンを長押しするとプログレスバーが表示されること', async ({ mount, page }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<h1>Original</h1>"
+            <CodePreviewFixture
+                html="<h1>Original</h1>"
             />
         );
 
@@ -293,8 +308,8 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     // ===== 行番号表示の切り替えテスト =====
     test('行番号表示切り替えボタンが機能すること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div>test</div>"
+            <CodePreviewFixture
+                html="<div>test</div>"
             />
         );
 
@@ -309,11 +324,11 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     // ===== エディタのリサイズ機能テスト =====
     test('エディタ間のリサイザーが表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 htmlVisible={true}
                 cssVisible={true}
-                initialHTML="<div></div>"
-                initialCSS="div { color: red; }"
+                html="<div></div>"
+                css="div { color: red; }"
             />
         );
 
@@ -327,11 +342,11 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('リサイザーでエディタの幅を調整できること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 htmlVisible={true}
                 cssVisible={true}
-                initialHTML="<div></div>"
-                initialCSS="div { color: red; }"
+                html="<div></div>"
+                css="div { color: red; }"
             />
         );
 
@@ -345,8 +360,8 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     // ===== デフォルト値のテスト =====
     test('minHeightのデフォルト値が適用されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div>test</div>"
+            <CodePreviewFixture
+                html="<div>test</div>"
             />
         );
 
@@ -356,8 +371,8 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('minHeightが数値でも適用されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div>test</div>"
+            <CodePreviewFixture
+                html="<div>test</div>"
                 minHeight={320}
             />
         );
@@ -367,8 +382,8 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('themeのデフォルト値(light)が適用されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div>test</div>"
+            <CodePreviewFixture
+                html="<div>test</div>"
             />
         );
 
@@ -379,9 +394,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('theme="dark"が適用されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 theme="dark"
-                initialHTML="<div>test</div>"
+                html="<div>test</div>"
             />
         );
 
@@ -392,9 +407,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('htmlPathのデフォルト値(index.html)が適用されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 fileStructureVisible={true}
-                initialHTML="<div>test</div>"
+                html="<div>test</div>"
             />
         );
 
@@ -405,12 +420,12 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     // ===== エディタの複数組み合わせテスト =====
     test('HTML+CSSエディタの組み合わせが表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 htmlVisible={true}
                 cssVisible={true}
                 jsVisible={false}
-                initialHTML="<div>test</div>"
-                initialCSS="div { color: red; }"
+                html="<div>test</div>"
+                css="div { color: red; }"
             />
         );
 
@@ -421,12 +436,12 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('HTML+JSエディタの組み合わせが表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 htmlVisible={true}
                 cssVisible={false}
                 jsVisible={true}
-                initialHTML="<div>test</div>"
-                initialJS="console.log('test');"
+                html="<div>test</div>"
+                js="console.log('test');"
             />
         );
 
@@ -437,13 +452,13 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('CSS+JSエディタの組み合わせが表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 htmlVisible={false}
                 cssVisible={true}
                 jsVisible={true}
-                initialHTML="<div>test</div>"
-                initialCSS="div { color: red; }"
-                initialJS="console.log('test');"
+                html="<div>test</div>"
+                css="div { color: red; }"
+                js="console.log('test');"
             />
         );
 
@@ -455,10 +470,10 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     // ===== ファイルパスの解決テスト =====
     test('cssPathが指定された場合、ファイル構造に表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 fileStructureVisible={true}
-                initialHTML="<div>test</div>"
-                initialCSS="div { color: red; }"
+                html="<div>test</div>"
+                css="div { color: red; }"
                 cssPath="css/style.css"
             />
         );
@@ -469,10 +484,10 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('jsPathが指定された場合、ファイル構造に表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 fileStructureVisible={true}
-                initialHTML="<div>test</div>"
-                initialJS="console.log('test');"
+                html="<div>test</div>"
+                js="console.log('test');"
                 jsPath="js/script.js"
             />
         );
@@ -483,9 +498,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('カスタムhtmlPathが指定された場合、ファイル構造に表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 fileStructureVisible={true}
-                initialHTML="<div>test</div>"
+                html="<div>test</div>"
                 htmlPath="pages/main.html"
             />
         );
@@ -496,11 +511,11 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('複数のファイルパスが指定された場合、すべて表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 fileStructureVisible={true}
-                initialHTML="<div>test</div>"
-                initialCSS="div { color: red; }"
-                initialJS="console.log('test');"
+                html="<div>test</div>"
+                css="div { color: red; }"
+                js="console.log('test');"
                 htmlPath="index.html"
                 cssPath="styles/main.css"
                 jsPath="scripts/app.js"
@@ -517,9 +532,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     // ===== 画像パスの解決テスト =====
     test('imagesプロパティが指定された場合、ファイル構造に表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 fileStructureVisible={true}
-                initialHTML="<div>test</div>"
+                html="<div>test</div>"
                 images={{
                     'img/sample.png': '/static/img/sample.png',
                     'img/logo.svg': '/static/img/logo.svg'
@@ -533,12 +548,12 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     });
 
     // ===== エディタの初期値テスト =====
-    test('initialCSSが指定されない場合でも正常に動作すること', async ({ mount }) => {
+    test('cssが指定されない場合でも正常に動作すること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 htmlVisible={true}
                 cssVisible={true}
-                initialHTML="<div>test</div>"
+                html="<div>test</div>"
             />
         );
 
@@ -546,12 +561,12 @@ test.describe('CodePreview コンポーネントのテスト', () => {
         await expect(component.getByText('CSS')).toBeVisible();
     });
 
-    test('initialJSが指定されない場合でも正常に動作すること', async ({ mount }) => {
+    test('jsが指定されない場合でも正常に動作すること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 htmlVisible={true}
                 jsVisible={true}
-                initialHTML="<div>test</div>"
+                html="<div>test</div>"
             />
         );
 
@@ -562,9 +577,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     // ===== ツールバーのボタンテスト =====
     test('ファイル構造の表示切り替えボタンが機能すること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 fileStructureVisible={true}
-                initialHTML="<div>test</div>"
+                html="<div>test</div>"
             />
         );
 
@@ -582,9 +597,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('ファイル構造の初期状態がfalseの場合、非表示から開始されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 fileStructureVisible={false}
-                initialHTML="<div>test</div>"
+                html="<div>test</div>"
             />
         );
 
@@ -603,8 +618,8 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     // ===== プレビューの高さテスト =====
     test('カスタムminHeightが適用されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div>test</div>"
+            <CodePreviewFixture
+                html="<div>test</div>"
                 minHeight="400px"
             />
         );
@@ -618,8 +633,8 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     // ===== エラーハンドリングテスト =====
     test('不正なHTMLでもクラッシュしないこと', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div><p>閉じタグなし"
+            <CodePreviewFixture
+                html="<div><p>閉じタグなし"
             />
         );
 
@@ -630,9 +645,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('不正なCSSでもクラッシュしないこと', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div>test</div>"
-                initialCSS="div { color: red"
+            <CodePreviewFixture
+                html="<div>test</div>"
+                css="div { color: red"
             />
         );
 
@@ -643,9 +658,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('不正なJavaScriptでもクラッシュしないこと', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div>test</div>"
-                initialJS="const x = "
+            <CodePreviewFixture
+                html="<div>test</div>"
+                js="const x = "
             />
         );
 
@@ -657,11 +672,11 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     // ===== アクセシビリティテスト =====
     test('セパレーターが適切なARIA属性を持つこと', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
+            <CodePreviewFixture
                 htmlVisible={true}
                 cssVisible={true}
-                initialHTML="<div>test</div>"
-                initialCSS="div { color: red; }"
+                html="<div>test</div>"
+                css="div { color: red; }"
             />
         );
 
@@ -674,12 +689,12 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     test('同じsourceIdを持つコンポーネント間で初期状態が共有されること', async ({ mount }) => {
         const component = await mount(
             <div>
-                <CodePreview
+                <CodePreviewFixture
                     sourceId="shared-source-1"
-                    initialHTML="<div>Shared Content</div>"
+                    html="<div>Shared Content</div>"
                 />
                 <div id="second-preview">
-                    <CodePreview
+                    <CodePreviewFixture
                         sourceId="shared-source-1"
                     />
                 </div>
@@ -700,10 +715,10 @@ test.describe('CodePreview コンポーネントのテスト', () => {
         const rawJs = '\n    document.getElementById(\'indent-target\').textContent = \'ok\';\n';
 
         await mount(
-            <CodePreview
+            <CodePreviewFixture
                 sourceId="indent-test"
-                initialHTML={rawHtml}
-                initialJS={rawJs}
+                html={rawHtml}
+                js={rawJs}
             />
         );
 
@@ -741,9 +756,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
         const rawHtml = '\nA\n  B\n';
 
         await mount(
-            <CodePreview
+            <CodePreviewFixture
                 sourceId="indent-preserve-test"
-                initialHTML={rawHtml}
+                html={rawHtml}
             />
         );
 
@@ -777,9 +792,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
     // ===== images プロパティのテスト =====
     test('CSS内の画像パスがimagesプロパティに基づいて解決されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div id='bg-test'></div>"
-                initialCSS="#bg-test { background-image: url('img/bg.png'); width: 100px; height: 100px; }"
+            <CodePreviewFixture
+                html="<div id='bg-test'></div>"
+                css="#bg-test { background-image: url('img/bg.png'); width: 100px; height: 100px; }"
                 images={{
                     'img/bg.png': '/static/img/real-bg.png'
                 }}
@@ -799,9 +814,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('CSS: 正しい相対パス(../img/fence.png)のみが解決されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div id='test-div'></div>"
-                initialCSS={`
+            <CodePreviewFixture
+                html="<div id='test-div'></div>"
+                css={`
                     #test-div { 
                         background-image: url('../img/fence.png');
                         width: 100px; height: 100px;
@@ -825,9 +840,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('CSS: 誤った相対パス(img/fence.png)は解決されないこと', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div id='test-div-wrong'></div>"
-                initialCSS={`
+            <CodePreviewFixture
+                html="<div id='test-div-wrong'></div>"
+                css={`
                     #test-div-wrong { 
                         background-image: url('img/fence.png');
                         width: 100px; height: 100px;
@@ -853,9 +868,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('CSS: 誤った相対パス(./img/fence.png)は解決されないこと', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div id='test-div-wrong-2'></div>"
-                initialCSS={`
+            <CodePreviewFixture
+                html="<div id='test-div-wrong-2'></div>"
+                css={`
                     #test-div-wrong-2 { 
                         background-image: url('./img/fence.png');
                         width: 100px; height: 100px;
@@ -880,8 +895,8 @@ test.describe('CodePreview コンポーネントのテスト', () => {
 
     test('HTML内の画像パスがimagesプロパティに基づいて解決されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<img src='img/logo.png' id='logo' />"
+            <CodePreviewFixture
+                html="<img src='img/logo.png' id='logo' />"
                 images={{
                     'img/logo.png': '/static/img/real-logo.png'
                 }}
@@ -909,9 +924,9 @@ test.describe('CodePreview コンポーネントのテスト', () => {
         });
 
         await mount(
-            <CodePreview
+            <CodePreviewFixture
                 sourceId="scoped-test"
-                initialHTML="<div>Page A</div>"
+                html="<div>Page A</div>"
             />
         );
 
@@ -970,8 +985,8 @@ test.describe('動的な高さ変更のテスト', () => {
 
     test('JavaScriptで要素が追加された場合、プレビュー領域の高さが広がること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML={`<div id="container"></div>
+            <CodePreviewFixture
+                html={`<div id="container"></div>
 <button id="add-btn" onclick="
     for(let i = 0; i < 10; i++) {
         const div = document.createElement('div');
@@ -1006,8 +1021,8 @@ test.describe('動的な高さ変更のテスト', () => {
 
     test('iframeIdが一致しなくても同一iframeからの高さ通知で更新されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div>Short content</div>"
+            <CodePreviewFixture
+                html="<div>Short content</div>"
                 minHeight="100px"
             />
         );
@@ -1037,8 +1052,8 @@ test.describe('動的な高さ変更のテスト', () => {
 
     test('モーダルウィンドウのような固定配置要素が表示された場合、高さが広がること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML={`<div style="text-align: center;">
+            <CodePreviewFixture
+                html={`<div style="text-align: center;">
     <button id="open-modal" style="font-size: 24px; padding: 10px 20px;">モーダルを開く</button>
 </div>
 <div id="modal" style="display: none; position: fixed; top: 50px; left: 50px; right: 50px; padding: 40px; background: white; border: 2px solid #333; z-index: 1000;">
@@ -1048,7 +1063,7 @@ test.describe('動的な高さ変更のテスト', () => {
     <div style="height: 200px; background: #f0f0f0; margin: 20px 0;"></div>
     <button id="close-modal">閉じる</button>
 </div>`}
-                initialJS={`
+                js={`
 document.getElementById('open-modal').addEventListener('click', function() {
     document.getElementById('modal').style.display = 'block';
 });
@@ -1083,8 +1098,8 @@ document.getElementById('close-modal').addEventListener('click', function() {
 
     test('高さは狭まる方向には調整されないこと', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML={`<div id="content" style="height: 300px; background: #eee;">
+            <CodePreviewFixture
+                html={`<div id="content" style="height: 300px; background: #eee;">
     大きなコンテンツ
 </div>
 <button id="shrink-btn" onclick="document.getElementById('content').style.height = '50px';">縮小</button>`}
@@ -1120,9 +1135,9 @@ document.getElementById('close-modal').addEventListener('click', function() {
 
     test('遅延で要素が追加された場合も高さが広がること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML={`<div id="container"></div>`}
-                initialJS={`
+            <CodePreviewFixture
+                html={`<div id="container"></div>`}
+                js={`
 setTimeout(function() {
     const div = document.createElement('div');
     div.style.height = '400px';
@@ -1149,9 +1164,9 @@ setTimeout(function() {
 
     test('cssPathが指定されている場合、fileStructureVisibleが未指定でも表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div>Test</div>"
-                initialCSS="div { color: red; }"
+            <CodePreviewFixture
+                html="<div>Test</div>"
+                css="div { color: red; }"
                 cssPath="css/style.css"
             />
         );
@@ -1161,9 +1176,9 @@ setTimeout(function() {
 
     test('jsPathが指定されている場合、fileStructureVisibleが未指定でも表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div>Test</div>"
-                initialJS="console.log('test');"
+            <CodePreviewFixture
+                html="<div>Test</div>"
+                js="console.log('test');"
                 jsPath="js/app.js"
             />
         );
@@ -1173,8 +1188,8 @@ setTimeout(function() {
 
     test('imagesが指定されている場合、fileStructureVisibleが未指定ならデフォルトで表示されること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div>Test</div>"
+            <CodePreviewFixture
+                html="<div>Test</div>"
                 images={{ 'img/test.png': '/img/test.png' }}
             />
         );
@@ -1184,8 +1199,8 @@ setTimeout(function() {
 
     test('imagesが指定されていても、fileStructureVisible=falseなら非表示であること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div>Test</div>"
+            <CodePreviewFixture
+                html="<div>Test</div>"
                 images={{ 'img/test.png': '/img/test.png' }}
                 fileStructureVisible={false}
             />
@@ -1196,11 +1211,12 @@ setTimeout(function() {
 
     test('imagesが指定されていない場合、fileStructureVisibleが未指定ならデフォルトで非表示であること', async ({ mount }) => {
         const component = await mount(
-            <CodePreview
-                initialHTML="<div>Test</div>"
+            <CodePreviewFixture
+                html="<div>Test</div>"
             />
         );
         const toggleButton = component.getByRole('button', { name: 'ファイル構造を表示' });
         await expect(toggleButton).toBeVisible();
     });
 });
+

@@ -16,14 +16,16 @@ export interface EditorDefinition {
 
 export interface CodePreviewProps {
     /**
+     * Code blocks to seed editors. Use fenced blocks with language labels:
+     * html, css, js, or javascript.
+     */
+    children?: React.ReactNode;
+    /**
      * Initial visibility of the file structure panel.
      * true shows the panel, false hides it.
      * When omitted, it is shown only if file paths or images are provided.
      */
     fileStructureVisible?: boolean;
-    initialHTML?: string;
-    initialCSS?: string;
-    initialJS?: string;
     title?: string;
     minHeight?: MinHeightValue;
     /**
@@ -60,6 +62,12 @@ export interface CodePreviewProps {
      * Example: { "img/sample.png": "/img/sample.png" }
      */
     images?: ImageMap;
+}
+
+export interface ResolvedCodePreviewProps extends Omit<CodePreviewProps, 'children'> {
+    initialHTML?: string;
+    initialCSS?: string;
+    initialJS?: string;
 }
 
 export interface EditorConfig {

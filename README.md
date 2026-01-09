@@ -20,60 +20,61 @@ npm i @metyatech/code-preview
 
 ## Quick start
 
-```tsx
+````mdx
 import { CodePreview } from '@metyatech/code-preview';
 
-export default function Example() {
-  return (
-    <CodePreview
-      title="Basic Example"
-      initialHTML={`<button id="btn">Click me</button>`}
-      initialCSS={`#btn { padding: 8px 12px; }`}
-      initialJS={`document.getElementById('btn')?.addEventListener('click', () => {
-  console.log('clicked');
-});`}
-      minHeight="240px"
-    />
-  );
-}
+<CodePreview title="Basic Example" minHeight="240px">
+```html
+<button id="btn">Click me</button>
 ```
+
+```css
+#btn { padding: 8px 12px; }
+```
+
+```javascript
+document.getElementById('btn')?.addEventListener('click', () => {
+  console.log('clicked');
+});
+```
+</CodePreview>
+````
 
 Styles are injected automatically; no stylesheet import is required.
 
 ## Props
 
-| Prop | Type | Default | Notes |
-| --- | --- | --- | --- |
-| `initialHTML` | `string` | `undefined` | HTML inserted into `<body>`. When provided, the HTML editor is shown by default. |
-| `initialCSS` | `string` | `undefined` | CSS editor is shown by default when provided. |
-| `initialJS` | `string` | `undefined` | JS editor is shown by default when provided. |
-| `title` | `string` | `undefined` | Header title shown above the editor layout. |
-| `minHeight` | `number \| string` | `"200px"` | Minimum height for editors and preview. Numbers are treated as px. |
-| `theme` | `"light" \| "dark"` | `"light"` | Monaco theme mapping (`"dark"` uses `vs-dark`). |
-| `htmlVisible` | `boolean` | auto | Force HTML editor visibility. |
-| `cssVisible` | `boolean` | auto | Force CSS editor visibility. |
-| `jsVisible` | `boolean` | auto | Force JS editor visibility. |
-| `previewVisible` | `boolean` | auto | Force preview visibility (default shows when HTML exists or HTML editor is forced on). |
-| `consoleVisible` | `boolean` | auto | Force console visibility (default shows when logs exist). |
-| `fileStructureVisible` | `boolean` | auto | Initial file structure visibility (default: `true` when file paths or `images` are provided). |
-| `sourceId` | `string` | `undefined` | Share sources across instances on the same page. |
-| `htmlPath` | `string` | `"index.html"` | Virtual HTML file path for the file structure panel. |
-| `cssPath` | `string` | `undefined` | Virtual CSS path for file structure and `url(...)` resolution. |
-| `jsPath` | `string` | `undefined` | Virtual JS path for file structure and script injection. |
-| `images` | `Record<string, string>` | `undefined` | Map of virtual image paths to real URLs. |
+| Prop                   | Type                     | Default        | Notes                                                                                         |
+| ---------------------- | ------------------------ | -------------- | --------------------------------------------------------------------------------------------- |
+| `children`             | `ReactNode`              | `undefined`    | One or more fenced code blocks with `html`, `css`, `js`, or `javascript` language labels.     |
+| `title`                | `string`                 | `undefined`    | Header title shown above the editor layout.                                                   |
+| `minHeight`            | `number \| string`       | `"200px"`      | Minimum height for editors and preview. Numbers are treated as px.                            |
+| `theme`                | `"light" \| "dark"`      | `"light"`      | Monaco theme mapping (`"dark"` uses `vs-dark`).                                               |
+| `htmlVisible`          | `boolean`                | auto           | Force HTML editor visibility.                                                                 |
+| `cssVisible`           | `boolean`                | auto           | Force CSS editor visibility.                                                                  |
+| `jsVisible`            | `boolean`                | auto           | Force JS editor visibility.                                                                   |
+| `previewVisible`       | `boolean`                | auto           | Force preview visibility (default shows when HTML exists or HTML editor is forced on).        |
+| `consoleVisible`       | `boolean`                | auto           | Force console visibility (default shows when logs exist).                                     |
+| `fileStructureVisible` | `boolean`                | auto           | Initial file structure visibility (default: `true` when file paths or `images` are provided). |
+| `sourceId`             | `string`                 | `undefined`    | Share sources across instances on the same page.                                              |
+| `htmlPath`             | `string`                 | `"index.html"` | Virtual HTML file path for the file structure panel.                                          |
+| `cssPath`              | `string`                 | `undefined`    | Virtual CSS path for file structure and `url(...)` resolution.                                |
+| `jsPath`               | `string`                 | `undefined`    | Virtual JS path for file structure and script injection.                                      |
+| `images`               | `Record<string, string>` | `undefined`    | Map of virtual image paths to real URLs.                                                      |
 
 ## Behavior notes
 
 ### Visibility rules
 
-- Editors are shown automatically only when the matching `initial*` prop is provided. Use `htmlVisible`, `cssVisible`, or `jsVisible` to force visibility.
+- Editors are shown automatically only when the matching code block is provided. Use `htmlVisible`, `cssVisible`, or `jsVisible` to force visibility.
 - Preview is shown when HTML exists or the HTML editor is forced on. Use `previewVisible={false}` to hide it.
 - Console is shown only when logs exist, unless `consoleVisible` forces it on or off.
 
-### Initial code normalization
+### Code block handling
 
-- When `initialHTML`, `initialCSS`, or `initialJS` are multi-line strings, common leading indentation and leading/trailing blank lines are trimmed automatically.
-- Single-line strings are left as-is.
+- The first code block found for each language is used as the initial source.
+- Multi-line blocks have leading/trailing blank lines trimmed and common indentation stripped.
+- Single-line blocks are left as-is, and editors append a trailing newline when missing.
 
 ### Virtual file paths and asset resolution
 
@@ -84,23 +85,32 @@ Styles are injected automatically; no stylesheet import is required.
 
 Example using virtual paths and assets:
 
-```tsx
+````mdx
 <CodePreview
-  initialHTML={`<link rel="stylesheet" href="css/style.css">
-<img src="img/logo.png" />
-<script src="js/app.js"></script>`}
-  initialCSS={`img { width: 120px; }`}
-  initialJS={`console.log('ready');`}
   cssPath="css/style.css"
   jsPath="js/app.js"
   images={{ 'img/logo.png': '/static/img/logo.png' }}
-/>;
+>
+```html
+<link rel="stylesheet" href="css/style.css">
+<img src="img/logo.png" />
+<script src="js/app.js"></script>
 ```
+
+```css
+img { width: 120px; }
+```
+
+```javascript
+console.log('ready');
+```
+</CodePreview>
+````
 
 ### Sharing code with `sourceId`
 
 - Instances with the same `sourceId` share HTML/CSS/JS and file paths on the same page (`window.location.pathname`).
-- The first instance that provides `initialHTML`/`initialCSS`/`initialJS` becomes the source provider. Avoid providing initial code in later instances unless you want to override the shared values.
+- The first instance that provides code blocks becomes the source provider. Avoid providing initial code in later instances unless you want to override the shared values.
 
 ### Editor and preview sizing
 

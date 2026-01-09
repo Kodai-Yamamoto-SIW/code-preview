@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useId, useMemo } from 'react';
 import type { editor } from 'monaco-editor';
-import { CodePreviewProps } from '../types';
+import { ResolvedCodePreviewProps } from '../types';
 import { useSourceCodeStore } from './useSourceCodeStore';
 import { useEditorResize } from './useEditorResize';
 import { useEditorHeight } from './useEditorHeight';
@@ -15,7 +15,7 @@ import { useEditorDefinitions } from './useEditorDefinitions';
 import { resolveVisibility } from '../utils/visibility';
 import { normalizeMinHeight } from '../utils/size-utils';
 
-export const useCodePreview = (props: CodePreviewProps) => {
+export const useCodePreview = (props: ResolvedCodePreviewProps) => {
     const {
         initialHTML,
         initialCSS,
