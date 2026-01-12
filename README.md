@@ -129,6 +129,21 @@ console.log('ready');
 - `npm run lint`: lint
 - `npm run test`: Playwright component tests (Chromium and full)
 
+## AGENTS.md
+
+This project uses `agent-rules` and `agent-rules-tools` as git submodules.
+After cloning, initialize submodules:
+
+```bash
+git submodule update --init --recursive
+```
+
+Update `agent-ruleset.json` as needed and regenerate:
+
+```bash
+node agent-rules-tools/tools/compose-agents.cjs
+```
+
 ## Environment variables
 
 None.
