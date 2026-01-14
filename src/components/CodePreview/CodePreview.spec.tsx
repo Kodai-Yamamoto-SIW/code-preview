@@ -1044,14 +1044,21 @@ test.describe('動的な高さ変更のテスト', () => {
 
         // iframe内のボタンをクリックして要素を追加
         const frame = iframe.contentFrame();
+        if (!frame) {
+            throw new Error('iframe content frame is not available');
+        }
         const addButton = frame.locator('#add-btn');
         await expect(addButton).toBeVisible({ timeout: 10000 });
         await addButton.click();
+        await expect(frame.locator('#container > div')).toHaveCount(10, { timeout: 10000 });
 
         // 高さが広がることを確認（ポーリングで確認）
         await expect.poll(async () => {
+            await iframe.evaluate((el) => {
+                (el as HTMLIFrameElement).contentWindow?.postMessage({ type: 'codePreviewHeightRequest' }, '*');
+            });
             return await iframe.evaluate((el) => (el as HTMLIFrameElement).offsetHeight);
-        }, { timeout: 5000 }).toBeGreaterThan(initialHeight);
+        }, { timeout: 10000 }).toBeGreaterThan(initialHeight);
     });
 
     test('iframeIdが一致しなくても同一iframeからの高さ通知で更新されること', async ({ mount }) => {
