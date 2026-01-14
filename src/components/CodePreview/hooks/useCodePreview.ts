@@ -28,13 +28,13 @@ export const useCodePreview = (props: ResolvedCodePreviewProps) => {
         previewVisible,
         consoleVisible,
         sourceId,
+        share,
         htmlPath,
         cssPath,
         jsPath,
         images,
         fileStructureVisible,
     } = props;
-    const defaultHtmlPath = htmlPath ?? 'index.html';
 
     // Refs
     const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -54,26 +54,28 @@ export const useCodePreview = (props: ResolvedCodePreviewProps) => {
         resolvedCSS,
         resolvedJS,
         resolvedImages,
-        resolvedHtmlPath,
+        resolvedHtmlPath: resolvedHtmlPathRaw,
         resolvedCssPath,
         resolvedJsPath,
         resetCodes
     } = useSourceCodeStore({
         sourceId,
+        share,
         initialHTML,
         initialCSS,
         initialJS,
         images,
-        htmlPath: defaultHtmlPath,
+        htmlPath,
         cssPath,
         jsPath
     });
+    const resolvedHtmlPath = resolvedHtmlPathRaw ?? 'index.html';
 
     const hasFileStructureInputs = !!(
         (resolvedImages && Object.keys(resolvedImages).length > 0) ||
-        htmlPath !== undefined ||
-        cssPath !== undefined ||
-        jsPath !== undefined
+        resolvedHtmlPathRaw !== undefined ||
+        resolvedCssPath !== undefined ||
+        resolvedJsPath !== undefined
     );
 
     // State

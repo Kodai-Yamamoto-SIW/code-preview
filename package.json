@@ -22,6 +22,7 @@
   ],
   "scripts": {
     "lint": "eslint .",
+    "test-ct:clean": "rimraf playwright/.cache",
     "test-ct:quick": "npm run test-ct -- --project=chromium",
     "test-ct": "playwright test -c playwright-ct.config.ts",
     "test": "npm run test-ct:quick && npm run test-ct",

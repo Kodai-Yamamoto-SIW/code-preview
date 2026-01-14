@@ -8,6 +8,7 @@ import type { ImageMap } from '../types';
 
 interface UseSourceCodeStoreProps {
     sourceId?: string;
+    share?: boolean;
     store?: ISourceCodeStore;
     initialHTML?: string;
     initialCSS?: string;
@@ -80,6 +81,7 @@ export const useSourceCodeStore = (props: UseSourceCodeStoreProps) => {
     useGlobalSourceProvider({
         sourceId: scopedSourceId,
         store,
+        share: props.share,
         initialHTML: normalizedInitialHTML,
         initialCSS: normalizedInitialCSS,
         initialJS: normalizedInitialJS,

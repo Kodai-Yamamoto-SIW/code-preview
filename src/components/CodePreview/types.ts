@@ -39,9 +39,14 @@ export interface CodePreviewProps {
     consoleVisible?: boolean;
     /**
      * Share code between multiple CodePreview instances on the same page.
-     * The first instance that provides initial code becomes the source provider.
+     * The first instance with initial sources and share enabled becomes the source provider.
      */
     sourceId?: string;
+    /**
+     * When using sourceId, controls whether this instance writes its initial
+     * sources to the shared store. Defaults to true.
+     */
+    share?: boolean;
     /**
      * Virtual HTML file path (e.g. "index.html").
      * Defaults to "index.html".

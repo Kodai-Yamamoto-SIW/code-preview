@@ -710,6 +710,41 @@ test.describe('CodePreview コンポーネントのテスト', () => {
         await expect(frame2.locator('div')).toHaveText('Shared Content', { timeout: 5000 });
     });
 
+    test('share=falseの場合は共有ストアを上書きしないこと', async ({ mount }) => {
+        const component = await mount(
+            <div>
+                <div id="provider-preview">
+                    <CodePreviewFixture
+                        sourceId="shared-source-override"
+                        html="<div id='shared-target'></div>"
+                        js="document.getElementById('shared-target').textContent = 'shared';"
+                    />
+                </div>
+                <div id="override-preview">
+                    <CodePreviewFixture
+                        sourceId="shared-source-override"
+                        share={false}
+                        js="document.getElementById('shared-target').textContent = 'override';"
+                    />
+                </div>
+                <div id="consumer-preview">
+                    <CodePreviewFixture
+                        sourceId="shared-source-override"
+                    />
+                </div>
+            </div>
+        );
+
+        const providerFrame = component.locator('#provider-preview iframe').contentFrame();
+        await expect(providerFrame.locator('#shared-target')).toHaveText('shared', { timeout: 5000 });
+
+        const overrideFrame = component.locator('#override-preview iframe').contentFrame();
+        await expect(overrideFrame.locator('#shared-target')).toHaveText('override', { timeout: 5000 });
+
+        const consumerFrame = component.locator('#consumer-preview iframe').contentFrame();
+        await expect(consumerFrame.locator('#shared-target')).toHaveText('shared', { timeout: 5000 });
+    });
+
     test('初期コードの共通インデントが除去されること', async ({ mount, page }) => {
         const rawHtml = '\n    <div id="indent-target">\n        <span>Indent</span>\n    </div>\n';
         const rawJs = '\n    document.getElementById(\'indent-target\').textContent = \'ok\';\n';

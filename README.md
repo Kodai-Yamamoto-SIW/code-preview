@@ -57,6 +57,7 @@ Styles are injected automatically; no stylesheet import is required.
 | `consoleVisible`       | `boolean`                | auto           | Force console visibility (default shows when logs exist).                                     |
 | `fileStructureVisible` | `boolean`                | auto           | Initial file structure visibility (default: `true` when file paths or `images` are provided). |
 | `sourceId`             | `string`                 | `undefined`    | Share sources across instances on the same page.                                              |
+| `share`                | `boolean`                | `true`         | When `false`, this instance does not write its initial sources to the shared store.           |
 | `htmlPath`             | `string`                 | `"index.html"` | Virtual HTML file path for the file structure panel.                                          |
 | `cssPath`              | `string`                 | `undefined`    | Virtual CSS path for file structure and `url(...)` resolution.                                |
 | `jsPath`               | `string`                 | `undefined`    | Virtual JS path for file structure and script injection.                                      |
@@ -109,9 +110,11 @@ console.log('ready');
 
 ### Sharing code with `sourceId`
 
-- Instances with the same `sourceId` share HTML/CSS/JS and file paths on the same page (`window.location.pathname`).
-- The first instance that provides code blocks becomes the source provider. Avoid providing initial code in later instances unless you want to override the shared values.
+- Instances with the same `sourceId` share HTML/CSS/JS, file paths, and images on the same page (`window.location.pathname`).
+- The first instance that provides code blocks (and has `share` enabled) becomes the source provider. Avoid providing initial code in later instances unless you want to override the shared values.
 - Partial overrides are supported: later instances can provide only HTML, only CSS, only JS, or any combination. Only the provided languages override the shared values; omitted languages keep their existing shared content.
+- Providing an empty code block clears that language for the shared source.
+- Use `share={false}` when you want local overrides (including `images` or paths) without updating the shared store.
 
 ### Editor and preview sizing
 
@@ -129,6 +132,7 @@ console.log('ready');
 - `npm run build`: build with Rollup
 - `npm run lint`: lint
 - `npm run test`: Playwright component tests (Chromium and full)
+- If Playwright fails to start due to cache issues, run `npm run test-ct:clean` and retry.
 
 ## AGENTS.md
 

@@ -5,6 +5,7 @@ import { SourceCodeState, ImageMap } from '../types';
 interface UseGlobalSourceProviderProps {
     sourceId?: string;
     store: ISourceCodeStore;
+    share?: boolean;
     initialHTML?: string;
     initialCSS?: string;
     initialJS?: string;
@@ -21,6 +22,7 @@ export const useGlobalSourceProvider = (props: UseGlobalSourceProviderProps) => 
     const {
         sourceId,
         store,
+        share = true,
         initialHTML,
         initialCSS,
         initialJS,
@@ -33,7 +35,16 @@ export const useGlobalSourceProvider = (props: UseGlobalSourceProviderProps) => 
         hasInitialJS
     } = props;
 
-    const isSourceProvider = sourceId && (hasInitialHTML || hasInitialCSS || hasInitialJS);
+    const hasSourceInputs = !!(
+        hasInitialHTML ||
+        hasInitialCSS ||
+        hasInitialJS ||
+        (images && Object.keys(images).length > 0) ||
+        htmlPath ||
+        cssPath ||
+        jsPath
+    );
+    const isSourceProvider = share && sourceId && hasSourceInputs;
 
     useEffect(() => {
         if (sourceId && isSourceProvider) {
