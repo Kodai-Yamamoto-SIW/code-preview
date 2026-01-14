@@ -111,6 +111,7 @@ console.log('ready');
 
 - Instances with the same `sourceId` share HTML/CSS/JS and file paths on the same page (`window.location.pathname`).
 - The first instance that provides code blocks becomes the source provider. Avoid providing initial code in later instances unless you want to override the shared values.
+- Partial overrides are supported: later instances can provide only HTML, only CSS, only JS, or any combination. Only the provided languages override the shared values; omitted languages keep their existing shared content.
 
 ### Editor and preview sizing
 
