@@ -15,6 +15,7 @@ export default {
             format: 'esm',
             sourcemap: true,
             entryFileNames: '[name].esm.js',
+            chunkFileNames: '[name]-[hash].esm.js',
             banner: (chunk) => (chunk.name === 'client' ? '"use client";\n' : '')
         },
         {
@@ -22,6 +23,7 @@ export default {
             format: 'cjs',
             sourcemap: true,
             entryFileNames: '[name].cjs',
+            chunkFileNames: '[name]-[hash].cjs',
             banner: (chunk) => (chunk.name === 'client' ? '"use client";\n' : '')
         }
     ],
