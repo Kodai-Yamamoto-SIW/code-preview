@@ -63,7 +63,7 @@ export interface CodePreviewProps {
      */
     jsPath?: string;
     /**
-     * Image path-to-URL map (e.g. from Docusaurus static assets).
+     * Image path-to-URL map (e.g. from static assets).
      * Example: { "img/sample.png": "/img/sample.png" }
      */
     images?: ImageMap;
