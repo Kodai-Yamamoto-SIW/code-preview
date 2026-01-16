@@ -5,10 +5,27 @@ import postcss from 'rollup-plugin-postcss';
 import autoprefixer from 'autoprefixer';
 
 export default {
-    input: 'src/index.ts',
+    input: {
+        index: 'src/index.ts',
+        client: 'src/client.ts'
+    },
     output: [
-        { file: 'dist/index.esm.js', format: 'esm', sourcemap: true },
-        { file: 'dist/index.cjs', format: 'cjs', sourcemap: true }
+        {
+            dir: 'dist',
+            format: 'esm',
+            sourcemap: true,
+            entryFileNames: '[name].esm.js',
+            chunkFileNames: '[name]-[hash].esm.js',
+            banner: (chunk) => (chunk.name === 'client' ? '"use client";\n' : '')
+        },
+        {
+            dir: 'dist',
+            format: 'cjs',
+            sourcemap: true,
+            entryFileNames: '[name].cjs',
+            chunkFileNames: '[name]-[hash].cjs',
+            banner: (chunk) => (chunk.name === 'client' ? '"use client";\n' : '')
+        }
     ],
     external: ['react', 'react-dom', '@monaco-editor/react'],
     plugins: [

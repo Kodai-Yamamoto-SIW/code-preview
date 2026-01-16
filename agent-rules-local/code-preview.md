@@ -1,6 +1,6 @@
 ## このプロジェクトについて（@metyatech/code-preview）
 
-このプロジェクトは、Docusaurus 等で利用するための **React + TypeScript** 製のコードプレビューライブラリ。
+このプロジェクトは、教材サイトなどで利用するための **React + TypeScript** 製のコードプレビューライブラリ。
 
 ## 技術スタック
 

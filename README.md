@@ -1,6 +1,6 @@
 # @metyatech/code-preview
 
-A React + TypeScript component for editing HTML/CSS/JS with a live iframe preview and console output. It is used in Docusaurus course content, but works in any React app.
+A React + TypeScript component for editing HTML/CSS/JS with a live iframe preview and console output. It works in any React app.
 
 ## Features
 
@@ -41,6 +41,14 @@ document.getElementById('btn')?.addEventListener('click', () => {
 ````
 
 Styles are injected automatically; no stylesheet import is required.
+
+### Next.js App Router
+
+When using server component environments (such as the Next.js App Router), import from the client entry:
+
+```tsx
+import { CodePreview } from '@metyatech/code-preview/client';
+```
 
 ## Props
 

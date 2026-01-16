@@ -1,7 +1,7 @@
 {
   "name": "@metyatech/code-preview",
-  "version": "0.2.0",
-  "description": "Docusaurus用のシンプルなHTML/CSSライブプレビューコンポーネント",
+  "version": "0.2.1",
+  "description": "A React + TypeScript component for editing HTML/CSS/JS with a live preview.",
   "private": false,
   "type": "module",
   "main": "dist/index.cjs",
@@ -12,6 +12,11 @@
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs",
       "types": "./dist/index.d.ts"
+    },
+    "./client": {
+      "import": "./dist/client.esm.js",
+      "require": "./dist/client.cjs",
+      "types": "./dist/client.d.ts"
     }
   },
   "files": [
